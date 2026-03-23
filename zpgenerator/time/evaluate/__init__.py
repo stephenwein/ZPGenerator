@@ -3,3 +3,4 @@ from .operator import *
 from .tensor import *
 from .quadruple import *
 from .cache import DefaultCache
+from ..._qutip_compat import qobj_compat as Qobj

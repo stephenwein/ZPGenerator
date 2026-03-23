@@ -1,7 +1,8 @@
 from .operator import EvaluatedOperator, evop_mv, evop_umv
 from typing import List
-from qutip import qzero, qeye, Qobj, liouvillian
+from qutip import qzero, qeye, Qobj as _Qobj, liouvillian
 from copy import deepcopy
+from ..._qutip_compat import qobj_compat
 
 
 class EvaluatedQuadruple:
@@ -31,7 +32,7 @@ class EvaluatedQuadruple:
 
         if not self.transitions and scatterer is not None:
             if not (isinstance(scatterer, EvaluatedOperator) and scatterer._is_empty_operator()):
-                zero_transition = Qobj() if self.subdims == [0] else qzero(self.subdims)
+                zero_transition = _Qobj() if self.subdims == [0] else qzero(self.subdims)
                 self.transitions = [EvaluatedOperator(constant=zero_transition) for _ in range(scatterer.dim)]
 
         if scatterer is None:
@@ -125,7 +126,7 @@ class EvaluatedQuadruple:
             if not isinstance(cascaded_scatterer, EvaluatedOperator):
                 cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant,
                                                        variable=cascaded_scatterer.variable)
-            if not isinstance(cascaded_scatterer.constant, Qobj):
+            if not isinstance(cascaded_scatterer.constant, _Qobj):
                 cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant * qeye(self.modes),
                                                        variable=cascaded_scatterer.variable)
 
@@ -139,14 +140,14 @@ class EvaluatedQuadruple:
             assert False, "Cannot cascade backwards"
 
 
-    def evaluate(self, t: float, parameters: dict = None) -> Qobj:
+    def evaluate(self, t: float, parameters: dict = None) -> _Qobj:
         h = self.hamiltonian.evaluate(t, parameters)
         c = [env.evaluate(t, parameters) for env in self.environment]
-        h_is_empty = isinstance(h, Qobj) and h.shape == (1, 1) and h.dims == [[1], [1]]
+        h_is_empty = isinstance(h, _Qobj) and h.shape == (1, 1) and h.dims == [[1], [1]]
         h_as_operator = h.isoper and not h_is_empty
         base_h = h if h_as_operator else qzero(self.environment[0].subdims if c else [0])
         return liouvillian(H=base_h, c_ops=[op for op in c if op.isoper]) + sum([op for op in c if op.issuper]) \
-            if h_as_operator or c else Qobj()
+            if h_as_operator or c else _Qobj()
 
     def pad(self, number: int):
         mode_increase = number - self.modes
@@ -167,12 +168,16 @@ class EvaluatedQuadruple:
 
 
 def _is_zero_evop(evop: EvaluatedOperator) -> bool:
-    return not evop.variable and isinstance(evop.constant, Qobj) and evop.constant == 0 * evop.constant
+    return not evop.variable and isinstance(evop.constant, _Qobj) and evop.constant == 0 * evop.constant
 
 
 def _is_trivial_evop(evop: EvaluatedOperator) -> bool:
-    if evop.variable or not isinstance(evop.constant, Qobj):
+    if evop.variable or not isinstance(evop.constant, _Qobj):
         return False
     if evop.constant.shape != (1, 1) or evop.constant.dims != [[1], [1]]:
         return False
     return evop.constant == 0 * evop.constant or evop.constant.full()[0, 0] != evop.constant.full()[0, 0]
+
+
+# Keep legacy constructor kwargs available for wildcard imports used in tests.
+Qobj = qobj_compat

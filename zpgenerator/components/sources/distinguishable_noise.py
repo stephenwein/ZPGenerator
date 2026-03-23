@@ -37,7 +37,7 @@ class DistinguishableNoiseSource(GatedSourceComponent):
         pulse_decho = Pulse(name='dephase')
         pulse_decho.add(Pulse.dirac(parameters={'area': 1, 'delay': 0}, name='p1'))
         pulse_decho.add(Pulse.dirac(parameters={'area': 1, 'delay': 26}, name='p2'))
-        dephasing_channel = Qobj(diag([1, 0, 0, 1]), dims=[[[2], [2]], [[2], [2]]], type='super')
+        dephasing_channel = Qobj(diag([1, 0, 0, 1]), dims=[[[2], [2]], [[2], [2]]], superrep='super')
         emitter.add(Control.operator(pulse=pulse_decho, operator=dephasing_channel))
 
         emitter.initial_state = emitter.states['|g>']

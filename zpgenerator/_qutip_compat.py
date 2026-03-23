@@ -3,27 +3,26 @@ from qutip import Qobj
 from numpy import isnan
 
 
-def patch_qutip_qobj_kwargs():
+def qobj_compat(*args, **kwargs):
     # Backward-compatibility aliases used across this codebase and tests.
-    if getattr(Qobj, "_zpg_qobj_kwargs_patched", False):
+    if "inpt" in kwargs and "arg" not in kwargs and not args:
+        kwargs["arg"] = kwargs.pop("inpt")
+    if "type" in kwargs:
+        qtype = kwargs.pop("type")
+        if qtype == "super" and "superrep" not in kwargs:
+            kwargs["superrep"] = "super"
+    return Qobj(*args, **kwargs)
+
+
+def patch_qutip_qobj_kwargs():
+    # Backward-compatible runtime behavior used across this codebase and tests.
+    if getattr(Qobj, "_zpg_qobj_legacy_patched", False):
         return
 
-    original_init = Qobj.__init__
     original_eq = Qobj.__eq__
     original_qeye = _qt.qeye
     original_qzero = _qt.qzero
     original_liouvillian = _qt.liouvillian
-
-    def patched_init(self, *args, **kwargs):
-        if "inpt" in kwargs and "arg" not in kwargs and not args:
-            kwargs["arg"] = kwargs.pop("inpt")
-        if "type" in kwargs:
-            qtype = kwargs.pop("type")
-            if qtype == "super" and "superrep" not in kwargs:
-                kwargs["superrep"] = "super"
-        return original_init(self, *args, **kwargs)
-
-    Qobj.__init__ = patched_init
 
     def patched_eq(self, other):
         if isinstance(other, Qobj):
@@ -60,7 +59,4 @@ def patch_qutip_qobj_kwargs():
 
     _qt.liouvillian = patched_liouvillian
 
-    Qobj._zpg_qobj_kwargs_patched = True
-
-
-patch_qutip_qobj_kwargs()
+    Qobj._zpg_qobj_legacy_patched = True

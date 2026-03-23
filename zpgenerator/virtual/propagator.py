@@ -84,8 +84,7 @@ class VPropHTD(AVirtualPropagator):
                          c_ops=c_ops,
                          e_ops=self.expect_operators,
                          options=options)
-        virtual_state.__init__(state=result.states[-1], time=t,
-                               virtual_configuration=virtual_state.virtual_configuration)
+        virtual_state.update(state=result.states[-1], time=t)
         return result
 
 
@@ -136,9 +135,7 @@ class VPropNHTD(AVirtualPropagator):
                          tlist=[virtual_state.time, t] if tlist is None else tlist,
                          e_ops=self.expect_operators,
                          options=options)
-        virtual_state.__init__(state=result.states[-1],
-                               time=t,
-                               virtual_configuration=virtual_state.virtual_configuration)
+        virtual_state.update(state=result.states[-1], time=t)
         return result
 
 
