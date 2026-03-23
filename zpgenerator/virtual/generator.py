@@ -1,6 +1,7 @@
 from ..system import AElement
 from ..network import Component, AComponent
 from .propagator import VPropNHTD, VPropHTD, VPropTI
+from .solver_options import default_virtual_solver_options, mesolve_options
 
 
 class Generator:
@@ -10,20 +11,13 @@ class Generator:
                  lifetime_mode: int = None, precision: int = 6):
         self.component = component if isinstance(component, AComponent) else Component(component)
         # Keep virtual-tree trajectories unnormalised; these traces encode generating points.
-        self.default_options = {"nsteps": 500000,
-                                "atol": 10 ** -precision,
-                                "rtol": 10 ** -(precision),
-                                "normalize_output": False}
+        self.default_options = default_virtual_solver_options(precision)
         self.lifetime_mode = lifetime_mode
         self.binned_detectors = self.component.output.binned_detectors if binned_detectors is None else binned_detectors
 
     def build_propagator(self, t: float, parameters: dict = None, options: dict = None):
         options = self.default_options if options is None else options
-        if isinstance(options, dict):
-            options = dict(options)
-            options["normalize_output"] = False
-        elif hasattr(options, "normalize_output"):
-            options.normalize_output = False
+        options = mesolve_options(options, force_unnormalized=True)
 
         use_fourier_nhtd = self._requires_fourier_virtual_configs() and not self._prefer_htd_for_parameters(parameters)
         parameters = self._canonicalize_fourier_parameters(parameters) if use_fourier_nhtd else parameters

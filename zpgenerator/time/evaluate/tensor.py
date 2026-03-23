@@ -5,28 +5,19 @@ from math import prod
 from copy import deepcopy
 from typing import List
 from numpy import array, asarray
-
-
-def _is_trivial_dim(dim) -> bool:
-    return dim in (0, 1, [0], [1])
-
-
-def _canonical_dim_list(dim):
-    if dim in (0, [0]):
-        return [1]
-    return dim if isinstance(dim, list) else [dim]
+from .dims import is_trivial_dim, canonical_dim_list
 
 
 # A function that inserts operator op at position n in the tensor space of dims
 def tensor_insert(op: Qobj, n, dims):
-    assert _canonical_dim_list(op.dims[0][0] if op.issuper else op.dims[0]) == _canonical_dim_list(dims[n]), \
+    assert canonical_dim_list(op.dims[0][0] if op.issuper else op.dims[0]) == canonical_dim_list(dims[n]), \
         "Position to insert must match the dimensions of the operator"
     opvec = []
     for i in range(0, len(dims)):
         if i == n:
             opvec.append(op)
         else:
-            if not _is_trivial_dim(dims[i]):
+            if not is_trivial_dim(dims[i]):
                 opvec.append(spre(qeye(dims[i]))) if op.issuper else opvec.append(qeye(dims[i]))
     new_op = super_tensor(opvec) if op.issuper else tensor(opvec)
     return new_op

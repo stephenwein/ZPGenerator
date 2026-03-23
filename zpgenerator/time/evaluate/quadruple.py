@@ -2,6 +2,7 @@ from .operator import EvaluatedOperator, evop_mv, evop_umv
 from typing import List
 from qutip import qzero, qeye, Qobj as _Qobj, liouvillian
 from copy import deepcopy
+from .dims import qzero_or_empty, qeye_or_empty
 
 
 class EvaluatedQuadruple:
@@ -31,7 +32,7 @@ class EvaluatedQuadruple:
 
         if not self.transitions and scatterer is not None:
             if not (isinstance(scatterer, EvaluatedOperator) and scatterer._is_empty_operator()):
-                zero_transition = _qzero_or_empty(self.subdims)
+                zero_transition = qzero_or_empty(self.subdims)
                 self.transitions = [EvaluatedOperator(constant=zero_transition) for _ in range(scatterer.dim)]
 
         if scatterer is None:
@@ -126,7 +127,7 @@ class EvaluatedQuadruple:
                 cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant,
                                                        variable=cascaded_scatterer.variable)
             if not isinstance(cascaded_scatterer.constant, _Qobj):
-                cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant * _qeye_or_empty(self.modes),
+                cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant * qeye_or_empty(self.modes),
                                                        variable=cascaded_scatterer.variable)
 
             return EvaluatedQuadruple(hamiltonian=hamiltonian, environment=environment,
@@ -146,14 +147,14 @@ class EvaluatedQuadruple:
         h_as_operator = h.isoper and not h_is_empty
         if not (h_as_operator or c):
             return _Qobj()
-        base_h = h if h_as_operator else _qzero_or_empty(self.environment[0].subdims if c else [0])
+        base_h = h if h_as_operator else qzero_or_empty(self.environment[0].subdims if c else [0])
         return liouvillian(H=base_h, c_ops=[op for op in c if op.isoper]) + sum([op for op in c if op.issuper])
 
     def pad(self, number: int):
         mode_increase = number - self.modes
         if mode_increase > 0:
             self.scatterer = self.scatterer.concatenate(EvaluatedOperator.id(mode_increase))
-            self.transitions += [EvaluatedOperator(_qzero_or_empty(self.subdims)) for i in range(0, mode_increase)]
+            self.transitions += [EvaluatedOperator(qzero_or_empty(self.subdims)) for i in range(0, mode_increase)]
 
     def permute(self, perm: List[int]):
         if sorted(perm) != perm:
@@ -169,18 +170,6 @@ class EvaluatedQuadruple:
 
 def _is_zero_evop(evop: EvaluatedOperator) -> bool:
     return not evop.variable and isinstance(evop.constant, _Qobj) and evop.constant == 0 * evop.constant
-
-
-def _qzero_or_empty(dims):
-    if dims in (0, [0]):
-        return _Qobj()
-    return qzero(dims)
-
-
-def _qeye_or_empty(dim):
-    if dim in (0, [0]):
-        return _Qobj()
-    return qeye(dim)
 
 
 def _is_trivial_evop(evop: EvaluatedOperator) -> bool:

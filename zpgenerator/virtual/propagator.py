@@ -1,5 +1,6 @@
 from .state import VState
 from ..time import EvaluatedOperator, Func
+from .solver_options import mesolve_options
 from abc import ABC, abstractmethod
 from qutip import Qobj, mesolve, spre, spost, liouvillian, lindblad_dissipator
 from typing import Union
@@ -104,14 +105,14 @@ class VPropHTD(AVirtualPropagator):
                              tlist=[virtual_state.time, t] if tlist is None else tlist,
                              c_ops=[],
                              e_ops=self.expect_operators,
-                             options=_normalise_solver_options(self.options, force_unnormalized=True))
+                             options=mesolve_options(self.options, force_unnormalized=True))
         else:
             result = mesolve(H=self.hamiltonian,
                              rho0=virtual_state,
                              tlist=[virtual_state.time, t] if tlist is None else tlist,
                              c_ops=self.collapse_operators,
                              e_ops=self.expect_operators,
-                             options=_normalise_solver_options(self.options, force_unnormalized=False))
+                             options=mesolve_options(self.options, force_unnormalized=False))
         virtual_state.update(state=result.states[-1], time=t)
         return result
 
@@ -159,7 +160,7 @@ class VPropNHTD(AVirtualPropagator):
                          rho0=rho0,
                          tlist=[virtual_state.time, t] if tlist is None else tlist,
                          e_ops=self.expect_operators,
-                         options=_normalise_solver_options(
+                         options=mesolve_options(
                              self.options,
                              force_unnormalized=jump is not None and not _is_zero_evalop(jump),
                          ))
@@ -199,21 +200,6 @@ def list_get(lst, idx, default):
 
 def _is_zero_evalop(evop: EvaluatedOperator) -> bool:
     return not evop.variable and evop.constant == 0 * evop.constant
-
-
-def _normalise_solver_options(options, force_unnormalized: bool):
-    if options is None:
-        return {"normalize_output": False} if force_unnormalized else None
-
-    if isinstance(options, dict):
-        merged = dict(options)
-        if force_unnormalized:
-            merged["normalize_output"] = False
-        return merged
-
-    if force_unnormalized and hasattr(options, "normalize_output"):
-        options.normalize_output = False
-    return options
 
 
 def _compile_superoperator_generator(hamiltonian: list, collapse_operators: list[Qobj], jump: Qobj = None):
