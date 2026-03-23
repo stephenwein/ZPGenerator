@@ -40,14 +40,17 @@ def tensor_dict(dict0: dict, dict1: dict) -> dict:
 
 
 def concat_diag(op0: Qobj, op1: Qobj):
-    return Qobj(block_diag([op0.data, op1.data], format='csr'))
+    matrix = block_diag([op0.full(), op1.full()], format='csr')
+    if op0.issuper:
+        return Qobj(matrix, superrep=op0.superrep)
+    return Qobj(matrix)
 
 
 def permutation_qobj(perm: List[int]) -> Qobj:
     dim = len(perm)
     id = list(range(0, len(perm)))
     matrix = csr_matrix(([1] * dim, (id, perm)), shape=(dim, dim))
-    return Qobj(inpt=matrix)
+    return Qobj(matrix)
 
 
 def id_flatten(objects, *default, remove: list = None):
@@ -87,4 +90,4 @@ def expmv_qutip(time: float, m, v):
 
 
 def expmv(time: float, m, v):
-    return expmv_scipy(time, m, v)
+    return expmv_qutip(time, m, v)

@@ -1,7 +1,6 @@
 from ...time import merge_times, Lifetime
 from ...virtual import VState, Generator
 from ...network import AComponent
-from qutip import Options
 from numpy import linspace
 
 
@@ -11,9 +10,15 @@ def compute_lifetime(source: AComponent,
                      start: float = None,
                      end: float = None,
                      parameters: dict = None,
-                     options: Options = None):
-    options = Options(nsteps=50000) if options is None else options  # set options for qutip
-    options.store_states = True
+                     options: dict = None):
+    if options is None:
+        options = {"nsteps": 50000, "store_states": True}
+    elif isinstance(options, dict):
+        options = dict(options)
+        options["store_states"] = True
+    elif hasattr(options, "store_states"):
+        # Backward compatibility with callers still providing qutip.Options.
+        options.store_states = True
 
     times = source.times(parameters)  # determine simulation stop times
     initial_time = source.initial_time if source.initial_time else times[0] if times else 0

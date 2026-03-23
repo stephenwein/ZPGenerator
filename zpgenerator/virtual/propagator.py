@@ -1,7 +1,7 @@
 from .state import VState
-from ..time import EvaluatedOperator
+from ..time import EvaluatedOperator, Func
 from abc import ABC, abstractmethod
-from qutip import Qobj, Options, mesolve, spre, liouvillian
+from qutip import Qobj, mesolve, spre, liouvillian
 from typing import Union
 
 
@@ -31,7 +31,7 @@ class VPropHTD(AVirtualPropagator):
                  collapse_operators: list[Qobj] = None,
                  jumps: list[Qobj] = None,
                  expect_operators: Union[Qobj, callable] = None,
-                 options: Options = None
+                 options: dict = None
                  ):
         """
 
@@ -39,9 +39,9 @@ class VPropHTD(AVirtualPropagator):
         :param collapse_operators: a list of Qobj describing all the collapse operators.
         :param jumps: a list of Qobj superoperators describing the jump statistics (without scaling by vconfig)
         :param expect_operators: a list of Qobj to evaluate expecation values for
-        :param options: an Options object for mesolve.
+        :param options: a dictionary of qutip.mesolve options.
         """
-        self.hamiltonian = hamiltonian
+        self.hamiltonian = self._normalise_hamiltonian(hamiltonian)
 
         self.collapse_operators = [] if collapse_operators is None else collapse_operators
         self.collapse_operators = [op[0] if isinstance(op, list) and len(op) == 1 else op for op in
@@ -51,6 +51,19 @@ class VPropHTD(AVirtualPropagator):
         self.jumps = [] if jumps is None else jumps
         self.expect_operators = expect_operators
         self.options = options
+
+    @staticmethod
+    def _normalise_hamiltonian(hamiltonian: list):
+        normalised = []
+        for term in hamiltonian:
+            if isinstance(term, list) and len(term) == 2 and isinstance(term[1], Func):
+                func = term[1]
+                normalised.append([term[0], lambda t, args=None, f=func: f(t, args)])
+            elif isinstance(term, list) and len(term) == 2 and hasattr(term[1], "__call__"):
+                normalised.append(term)
+            else:
+                normalised.append(term)
+        return normalised
 
     def jump(self, vconfig):
         default = 0 * spre(self.hamiltonian[0])
@@ -62,12 +75,15 @@ class VPropHTD(AVirtualPropagator):
             c_ops = self.collapse_operators + [jump]
         else:
             c_ops = self.collapse_operators
+        options = self.options if self.options is not None else (
+            {"normalize_output": False} if jump != 0 * jump else None
+        )
         result = mesolve(H=self.hamiltonian,
                          rho0=virtual_state,
                          tlist=[virtual_state.time, t] if tlist is None else tlist,
                          c_ops=c_ops,
                          e_ops=self.expect_operators,
-                         options=self.options)
+                         options=options)
         virtual_state.__init__(state=result.states[-1], time=t,
                                virtual_configuration=virtual_state.virtual_configuration)
         return result
@@ -82,14 +98,14 @@ class VPropNHTD(AVirtualPropagator):
                  generator: EvaluatedOperator,
                  jumps: list[EvaluatedOperator] = None,
                  expect_operators: Union[Qobj, callable] = None,
-                 options: Options = None
+                 options: dict = None
                  ):
         """
 
         :param generator: an EvaluatedOperator object describing the time-dependent generator.
         :param jumps: a list of EvaluatedOperator objects describing possibly time-dependent jumps.
         :param expect_operators: a list of Qobj to evaluate expecation values for
-        :param options: an Options object for mesolve.
+        :param options: a dictionary of qutip.mesolve options.
         """
         self.generator = generator
         self.jumps = [] if jumps is None else jumps
@@ -97,17 +113,29 @@ class VPropNHTD(AVirtualPropagator):
         self.options = options
 
     def jump(self, vconfig) -> EvaluatedOperator:
-        default = 0 * self.generator.constant
+        default = 0 * self.jumps[0].constant if self.jumps else 0 * self.generator.constant
         return sum((-vconfig[i] * list_get(self.jumps, i, default) for i in range(0, len(vconfig))), default)
 
     def propagate(self, virtual_state: VState, t: float, tlist: list = None):
-        gen = self.generator + \
-              self.jump(virtual_state.virtual_configuration) if virtual_state.virtual_configuration else self.generator
-        result = mesolve(H=gen.list_form(),
-                         rho0=virtual_state,
+        jump = self.jump(virtual_state.virtual_configuration) if virtual_state.virtual_configuration else None
+        gen = self.generator + jump if jump is not None else self.generator
+        hamiltonian = []
+        for term in gen.list_form():
+            if isinstance(term, list) and len(term) == 2 and isinstance(term[1], Func):
+                func = term[1]
+                hamiltonian.append([term[0], lambda time, args=None, f=func: f(time, args)])
+            else:
+                hamiltonian.append(term)
+
+        rho0 = virtual_state if virtual_state.isoper else virtual_state * virtual_state.dag()
+        options = self.options if self.options is not None else (
+            {"normalize_output": False} if jump is not None and not _is_zero_evalop(jump) else None
+        )
+        result = mesolve(H=hamiltonian,
+                         rho0=rho0,
                          tlist=[virtual_state.time, t] if tlist is None else tlist,
                          e_ops=self.expect_operators,
-                         options=self.options)
+                         options=options)
         virtual_state.__init__(state=result.states[-1],
                                time=t,
                                virtual_configuration=virtual_state.virtual_configuration)
@@ -142,3 +170,7 @@ def list_get(lst, idx, default):
         return lst[idx]
     except IndexError:
         return default
+
+
+def _is_zero_evalop(evop: EvaluatedOperator) -> bool:
+    return not evop.variable and evop.constant == 0 * evop.constant

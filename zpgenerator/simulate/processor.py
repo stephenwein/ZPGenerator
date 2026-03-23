@@ -4,7 +4,7 @@ from ..misc.display import Display
 from ..network import AComponent, ADetectorGate, Component
 from ..system import AElement
 from typing import Union, List
-from qutip import Options, Qobj
+from qutip import Qobj
 
 
 class Processor(ProcessorQuality):
@@ -53,7 +53,7 @@ class Processor(ProcessorQuality):
             Display(comp).display()
 
     def probs(self, parameters: dict = None, bin_list: list = None, chop: bool = True,
-              options: Options = None, reset: bool = True):
+              options: dict = None, reset: bool = True):
         probs = CorrelationDistribution(super().probs(parameters=parameters, bin_list=bin_list,
                                                       options=options, reset=reset),
                                         precision=self.precision,
@@ -64,7 +64,7 @@ class Processor(ProcessorQuality):
 
     def conditional_states(self, parameters: dict = None, bin_list: list = None,
                            dims: List[int] = None, select: List[int] = None,
-                           chop: bool = True, options: Options = None, reset: bool = True):
+                           chop: bool = True, options: dict = None, reset: bool = True):
         states = StateDistribution(super().conditional_states(parameters=parameters, bin_list=bin_list,
                                                               dims=dims, select=select, options=options, reset=reset),
                                    precision=self.precision)
@@ -74,7 +74,7 @@ class Processor(ProcessorQuality):
 
     def conditional_channels(self, parameters: dict = None, bin_list: list = None,
                              dims: List[int] = None, select: List[int] = None, basis: List[Qobj] = None,
-                             options: Options = None, reset: bool = True):
+                             options: dict = None, reset: bool = True):
         return ChannelDistribution(super().conditional_channels(parameters=parameters, bin_list=bin_list,
                                                                 dims=dims, select=select, basis=basis,
                                                                 options=options, reset=reset),

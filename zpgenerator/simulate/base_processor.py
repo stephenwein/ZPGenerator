@@ -2,8 +2,8 @@ from ..network import AComponent, Component, ADetectorGate, TimeBin, DetectorGat
 from ..system import AElement
 from ..virtual import Generator, VGrove, MeasurementBranch
 from typing import Union, List
-from qutip import Qobj, Options, ptrace, operator_to_vector
-from scipy.sparse import hstack
+from qutip import Qobj, ptrace, operator_to_vector
+import numpy as np
 
 
 class ProcessorBase:
@@ -190,7 +190,7 @@ class ProcessorBase:
                         parameters: dict = None,
                         bin_list: list = None,
                         basis: List[Qobj] = None,
-                        options: Options = None,
+                        options: dict = None,
                         continue_simulation: bool = False):
         times = self.component.times(parameters)  # determine simulation stop times
         initial_time = self._get_initial_time(times)
@@ -225,17 +225,17 @@ class ProcessorBase:
         self._branch_order = branch_order
 
     def generating_points(self, parameters: dict = None,
-                          basis: List[Qobj] = None, options: Options = None):
+                          basis: List[Qobj] = None, options: dict = None):
         self._simulate_grove(parameters=parameters, basis=basis, options=options)
         return [tree.get_points() for tree in self._grove]
 
     def generating_states(self, parameters: dict = None,
-                          basis: List[Qobj] = None, options: Options = None):
+                          basis: List[Qobj] = None, options: dict = None):
         self._simulate_grove(parameters=parameters, basis=basis, options=options)
         return [tree.get_states() for tree in self._grove]
 
     def generating_channels(self, parameters: dict = None,
-                            basis: List[Qobj] = None, options: Options = None):
+                            basis: List[Qobj] = None, options: dict = None):
         self._simulate_grove(parameters=parameters, basis=basis, options=options)
         return list(map(list, zip(*[tree.get_states() for tree in self._grove])))
 
@@ -246,7 +246,7 @@ class ProcessorBase:
                  dims: List[int] = None,
                  select: List[int] = None,
                  basis: list[Qobj] = None,
-                 options: Options = None,
+                 options: dict = None,
                  reset: bool = True):
         """
         :param parameters: optional parameters to modify the default parameters.
@@ -295,9 +295,9 @@ class ProcessorBase:
                     if select:
                         state = ptrace(state, select)  # trace out desired subspaces
                     new_dims = state.dims
-                    ch_inpt.append(operator_to_vector(state).data)
-                ch_inpt = hstack(ch_inpt)  # rearrange into matrix
-                channel = Qobj(inpt=ch_inpt, dims=[new_dims, new_dims], type='super')  # make into super-operator
+                    ch_inpt.append(operator_to_vector(state).full())
+                ch_inpt = np.hstack(ch_inpt)  # rearrange into matrix
+                channel = Qobj(ch_inpt, dims=[new_dims, new_dims], superrep='super')  # make into super-operator
                 self._channels.update({k: channel})
 
         else:
@@ -306,19 +306,19 @@ class ProcessorBase:
     def _order_bins(self, distribution: dict):
         return {tuple(k[i] for i in self._branch_order): v for k, v in distribution.items()}
 
-    def probs(self, parameters: dict = None, bin_list: list = None, options: Options = None, reset: bool = True):
+    def probs(self, parameters: dict = None, bin_list: list = None, options: dict = None, reset: bool = True):
         self.simulate(parameters=parameters, point_rank=0, bin_list=bin_list, options=options, reset=reset)
         return self._order_bins(self._probabilities)
 
     def conditional_states(self, parameters: dict = None, bin_list: list = None, dims: List[int] = None,
-                           select: List[int] = None, options: Options = None, reset: bool = True):
+                           select: List[int] = None, options: dict = None, reset: bool = True):
         self.simulate(parameters=parameters, point_rank=1, bin_list=bin_list,
                       dims=dims, select=select, options=options, reset=reset)
         return self._order_bins(self._states)
 
     def conditional_channels(self, parameters: dict = None, bin_list: list = None,
                              dims: List[int] = None, select: List[int] = None, basis: List[Qobj] = None,
-                             options: Options = None, reset: bool = True):
+                             options: dict = None, reset: bool = True):
         self.simulate(parameters=parameters, point_rank=2, bin_list=bin_list,
                       dims=dims, select=select, basis=basis, options=options, reset=reset)
         return self._order_bins(self._channels)

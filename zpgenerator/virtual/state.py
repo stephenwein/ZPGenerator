@@ -12,7 +12,7 @@ class VState(Qobj):
     """
 
     def __init__(self, state: Qobj, time: float = 0, virtual_configuration: list = None):
-        super().__init__(inpt=state)
+        super().__init__(state)
         self.virtual_configuration = [] if virtual_configuration is None else virtual_configuration
         self.time = time
 
@@ -21,9 +21,9 @@ class VState(Qobj):
         if isinstance(op, Qobj):
             if op.isoper:
                 rho = self if self.isoper else self * self.dag()
-                super().__init__(inpt=op * rho * op.dag())
+                super().__init__(op * rho * op.dag())
             else:
-                super().__init__(inpt=op(self))
+                super().__init__(op(self))
             return self
         elif isinstance(op, EvaluatedDiracOperator):
             if op.hamiltonian:
@@ -38,9 +38,18 @@ class VState(Qobj):
             op = liouvillian(op)
 
         rho = self if self.isoper else self * self.dag()
-        super().__init__(inpt=expmv(time, op, rho), dims=rho.dims)
+        super().__init__(expmv(time, op, rho), dims=rho.dims)
         return self
 
     # Propagating the state forward in time given the current configuration
     def propagate(self, propagator, t: float, tlist: list = None):
         return propagator.propagate(self, t, tlist=tlist)
+
+    # QuTiP 5 changed indexing semantics. Keep legacy matrix-like behavior expected by this package.
+    def __getitem__(self, item):
+        matrix = self.full()
+        if isinstance(item, tuple):
+            return matrix[item]
+        if isinstance(item, int):
+            return matrix[item:item + 1, :]
+        return matrix[item]

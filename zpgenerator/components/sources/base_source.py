@@ -6,7 +6,6 @@ from ...system import EmitterBase
 from ...misc.display import Display
 from ...simulate import Processor
 from typing import Union, List
-from qutip import Options
 
 
 class SourceComponent(Component):
@@ -120,7 +119,7 @@ class SourceComponent(Component):
                  resolution: int = 600,
                  start: float = None,
                  end: float = None,
-                 options: Options = None) -> Lifetime:
+                 options: dict = None) -> Lifetime:
         self._make_processor()
         return self._quality_processor.lifetime(port, parameters, resolution, start, end, options)
 
@@ -132,12 +131,12 @@ class SourceComponent(Component):
                       end: float = None,
                       label: str = None,
                       scale: float = 1,
-                      options: Options = None):
+                      options: dict = None):
         self._make_processor()
         return self._quality_processor.plot_lifetime(port, parameters, resolution, start, end, label, scale, options)
 
     def wigner(self, port: Union[int, str] = None, alpha: Union[complex, List[complex]] = 0, parameters: dict = None,
-               pseudo_limit: float = 0.01, options: Options = None, lo_resolution=600, lo_fluctuations=2):
+               pseudo_limit: float = 0.01, options: dict = None, lo_resolution=600, lo_fluctuations=2):
         """
         :param port: the port of the source being analysed
         :param alpha: a complex amplitude in phase space or a list of such amplitudes

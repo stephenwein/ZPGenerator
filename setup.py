@@ -11,11 +11,11 @@ setup(
     version='0.2.0',
     packages=package_list,
     install_requires=[
-        'qutip==4.7.3',
+        'qutip',
         'numpy',
-        'scipy==1.11.4',
+        'scipy',
         'frozendict',
-        'matplotlib==3.7.0'
+        'matplotlib'
     ],
     extras_require={
         'interactive': ['jupyter'],

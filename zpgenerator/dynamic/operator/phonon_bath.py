@@ -1,6 +1,11 @@
 from numpy import pi, exp, cosh, sinh, linspace, sin, cos, sqrt, real, imag
 from scipy.interpolate import interp1d
-from scipy.integrate import simps
+try:
+    # SciPy < 1.14
+    from scipy.integrate import simps as _simpson_integrate
+except ImportError:
+    # SciPy >= 1.14
+    from scipy.integrate import simpson as _simpson_integrate
 from qutip import Qobj, spre, spost, sprepost
 from ...time import PulseBase, TimeOperator
 from ...system import EnvironmentBase
@@ -145,16 +150,16 @@ class PhononBath:
         rs_set = []
         for rabi_r in power_space:
             rs_eval = self._rs_integrand(delay_space[:, None], freq_space, rabi_r)
-            rs_set.append(simps(simps(rs_eval, freq_space), delay_space))
+            rs_set.append(_simpson_integrate(_simpson_integrate(rs_eval, freq_space), delay_space))
         self._rs_func = interp1d(power_space, rs_set)
 
         ic_set = []
         for rabi_r in power_space:
             ic_eval = self._ic_integrand(delay_space[:, None], freq_space, rabi_r)
-            ic_set.append(simps(simps(ic_eval, freq_space), delay_space))
+            ic_set.append(_simpson_integrate(_simpson_integrate(ic_eval, freq_space), delay_space))
         self._ic_func = interp1d(power_space, ic_set)
 
-        self._phi0 = simps([self._phi0_integrand(f) for f in freq_space], freq_space)
+        self._phi0 = _simpson_integrate([self._phi0_integrand(f) for f in freq_space], freq_space)
         self._attenuation = exp(-self._phi0 / 2)
 
     def rabi_r(self, rabi_x: float, rabi_y: float, detuning: float):
