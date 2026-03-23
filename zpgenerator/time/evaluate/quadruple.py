@@ -2,7 +2,6 @@ from .operator import EvaluatedOperator, evop_mv, evop_umv
 from typing import List
 from qutip import qzero, qeye, Qobj as _Qobj, liouvillian
 from copy import deepcopy
-from ..._qutip_compat import qobj_compat
 
 
 class EvaluatedQuadruple:
@@ -192,5 +191,5 @@ def _is_trivial_evop(evop: EvaluatedOperator) -> bool:
     return evop.constant == 0 * evop.constant or evop.constant.full()[0, 0] != evop.constant.full()[0, 0]
 
 
-# Keep legacy constructor kwargs available for wildcard imports used in tests.
-Qobj = qobj_compat
+# Keep Qobj available for wildcard imports used in tests.
+Qobj = _Qobj
