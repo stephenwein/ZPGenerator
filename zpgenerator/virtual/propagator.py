@@ -1,7 +1,7 @@
 from .state import VState
 from ..time import EvaluatedOperator, Func
 from abc import ABC, abstractmethod
-from qutip import Qobj, mesolve, spre, liouvillian
+from qutip import Qobj, mesolve, spre, spost, liouvillian, lindblad_dissipator
 from typing import Union
 
 
@@ -43,10 +43,7 @@ class VPropHTD(AVirtualPropagator):
         """
         self.hamiltonian = self._normalise_hamiltonian(hamiltonian)
 
-        self.collapse_operators = [] if collapse_operators is None else collapse_operators
-        self.collapse_operators = [op[0] if isinstance(op, list) and len(op) == 1 else op for op in
-                                   self.collapse_operators]
-        self.collapse_operators = [op for op in self.collapse_operators if op != 0 * op]
+        self.collapse_operators = self._normalise_collapse_operators(collapse_operators)
 
         self.jumps = [] if jumps is None else jumps
         self.expect_operators = expect_operators
@@ -65,25 +62,56 @@ class VPropHTD(AVirtualPropagator):
                 normalised.append(term)
         return normalised
 
+    @staticmethod
+    def _normalise_collapse_operators(collapse_operators: list[Qobj]):
+        normalised = []
+        if collapse_operators is None:
+            return normalised
+
+        for term in collapse_operators:
+            if isinstance(term, list) and len(term) == 1:
+                term = term[0]
+            elif isinstance(term, list) and len(term) == 2 and isinstance(term[1], Func):
+                func = term[1]
+                term = [term[0], lambda t, args=None, f=func: f(t, args)]
+
+            base = _collapse_term_base(term)
+            if _is_zero_qobj(base):
+                continue
+            normalised.append(term)
+        return normalised
+
     def jump(self, vconfig):
         default = 0 * spre(self.hamiltonian[0])
         return sum([-vconfig[i] * list_get(self.jumps, i, default) for i in range(0, len(vconfig))], default)
 
     def propagate(self, virtual_state: VState, t: float, tlist: list = None):
         jump = self.jump(virtual_state.virtual_configuration)
-        if jump != 0 * jump:
-            c_ops = self.collapse_operators + [jump]
-        else:
-            c_ops = self.collapse_operators
-        options = self.options if self.options is not None else (
-            {"normalize_output": False} if jump != 0 * jump else None
+        use_superoperator_solver = (
+            jump != 0 * jump
+            or any(_collapse_term_is_super(op) for op in self.collapse_operators)
         )
-        result = mesolve(H=self.hamiltonian,
-                         rho0=virtual_state,
-                         tlist=[virtual_state.time, t] if tlist is None else tlist,
-                         c_ops=c_ops,
-                         e_ops=self.expect_operators,
-                         options=options)
+
+        if use_superoperator_solver:
+            generator = _compile_superoperator_generator(
+                hamiltonian=self.hamiltonian,
+                collapse_operators=self.collapse_operators,
+                jump=jump if jump != 0 * jump else None,
+            )
+            rho0 = virtual_state if virtual_state.isoper else virtual_state * virtual_state.dag()
+            result = mesolve(H=generator,
+                             rho0=rho0,
+                             tlist=[virtual_state.time, t] if tlist is None else tlist,
+                             c_ops=[],
+                             e_ops=self.expect_operators,
+                             options=_normalise_solver_options(self.options, force_unnormalized=True))
+        else:
+            result = mesolve(H=self.hamiltonian,
+                             rho0=virtual_state,
+                             tlist=[virtual_state.time, t] if tlist is None else tlist,
+                             c_ops=self.collapse_operators,
+                             e_ops=self.expect_operators,
+                             options=_normalise_solver_options(self.options, force_unnormalized=False))
         virtual_state.update(state=result.states[-1], time=t)
         return result
 
@@ -127,14 +155,14 @@ class VPropNHTD(AVirtualPropagator):
                 hamiltonian.append(term)
 
         rho0 = virtual_state if virtual_state.isoper else virtual_state * virtual_state.dag()
-        options = self.options if self.options is not None else (
-            {"normalize_output": False} if jump is not None and not _is_zero_evalop(jump) else None
-        )
         result = mesolve(H=hamiltonian,
                          rho0=rho0,
                          tlist=[virtual_state.time, t] if tlist is None else tlist,
                          e_ops=self.expect_operators,
-                         options=options)
+                         options=_normalise_solver_options(
+                             self.options,
+                             force_unnormalized=jump is not None and not _is_zero_evalop(jump),
+                         ))
         virtual_state.update(state=result.states[-1], time=t)
         return result
 
@@ -171,3 +199,91 @@ def list_get(lst, idx, default):
 
 def _is_zero_evalop(evop: EvaluatedOperator) -> bool:
     return not evop.variable and evop.constant == 0 * evop.constant
+
+
+def _normalise_solver_options(options, force_unnormalized: bool):
+    if options is None:
+        return {"normalize_output": False} if force_unnormalized else None
+
+    if isinstance(options, dict):
+        merged = dict(options)
+        if force_unnormalized:
+            merged["normalize_output"] = False
+        return merged
+
+    if force_unnormalized and hasattr(options, "normalize_output"):
+        options.normalize_output = False
+    return options
+
+
+def _compile_superoperator_generator(hamiltonian: list, collapse_operators: list[Qobj], jump: Qobj = None):
+    compiled = []
+    for term in hamiltonian:
+        if isinstance(term, list) and len(term) == 2 and hasattr(term[1], "__call__"):
+            op = term[0]
+            func = term[1]
+            if op.issuper:
+                compiled.append([op, func])
+            else:
+                compiled.append([-1.j * spre(op), func])
+                compiled.append([1.j * spost(op.dag()), _conjugate_coefficient(func)])
+        else:
+            compiled.append(_as_superoperator(term))
+
+    for term in collapse_operators:
+        if isinstance(term, list) and len(term) == 2 and hasattr(term[1], "__call__"):
+            op = term[0]
+            func = term[1]
+            if hasattr(op, "isoper") and op.isoper:
+                compiled.append([lindblad_dissipator(op), lambda t, args=None, f=func: abs(f(t, args)) ** 2])
+            elif hasattr(op, "issuper") and op.issuper:
+                compiled.append([op, func])
+        else:
+            op = _collapse_term_base(term)
+            if hasattr(op, "isoper") and op.isoper:
+                compiled.append(lindblad_dissipator(op))
+            elif hasattr(op, "issuper") and op.issuper:
+                compiled.append(op)
+
+    if jump is not None:
+        compiled.append(jump)
+
+    return _collapse_qobj_list(compiled)
+
+
+def _as_superoperator(op: Qobj) -> Qobj:
+    if op.issuper:
+        return op
+    return liouvillian(op)
+
+
+def _collapse_qobj_list(terms):
+    static_terms = [term for term in terms if not (isinstance(term, list) and len(term) == 2)]
+    time_terms = [term for term in terms if isinstance(term, list) and len(term) == 2]
+    if not static_terms:
+        if time_terms:
+            return time_terms
+        assert False, "Cannot build a generator from an empty term list."
+    static = sum(static_terms[1:], static_terms[0])
+    return [static, *time_terms]
+
+
+def _collapse_term_base(term):
+    if isinstance(term, list) and term:
+        return term[0]
+    return term
+
+
+def _collapse_term_is_super(term) -> bool:
+    base = _collapse_term_base(term)
+    return hasattr(base, "issuper") and base.issuper
+
+
+def _is_zero_qobj(op) -> bool:
+    if not isinstance(op, Qobj):
+        return False
+    return op == 0 * op
+
+
+def _conjugate_coefficient(func):
+    return lambda t, args=None, f=func: complex(f(t, args)).conjugate()
