@@ -4,6 +4,7 @@ from zpgenerator.time import Operator, TimeOperator, TimeIntervalFunction, TimeI
 from qutip import Qobj, num, destroy, create, sprepost, qzero, liouvillian, qeye
 from numpy import pi, exp, sqrt
 from zpgenerator.time.parameters import Parameters
+from tests_assertions import assert_empty_qobj
 
 d = Parameters.DELIMITER
 
@@ -11,7 +12,7 @@ def test_hamiltonian_init_empty():
     ham = HamiltonianBase()
     assert ham.subdims is None
     assert ham.operators == {}
-    assert ham.evaluate(0) == Qobj()
+    assert_empty_qobj(ham.evaluate(0))
 
 
 def test_hamiltonian_init_basic():
@@ -72,7 +73,7 @@ def test_environment_init_empty():
     env = EnvironmentBase()
     assert env.subdims is None
     assert env.operators == {}
-    assert env.evaluate(0) == Qobj()
+    assert_empty_qobj(env.evaluate(0))
 
 
 def test_environment_init():
@@ -86,7 +87,7 @@ def test_environment_init():
     assert env.length == 2
     assert env.is_super
     assert env.evaluate(1, parameters={'jump': 1, 'dephasing': 2}) == \
-           liouvillian(qzero(2), [sprepost(destroy(2), create(2)), 2 * num(2)])
+           liouvillian(qzero(2), [2 * num(2)]) + sprepost(destroy(2), create(2))
     assert env.evaluate_quadruple(0, parameters={'jump': 1, 'dephasing': 2}).environment[0].constant == \
            sprepost(qzero(2), qzero(2))
     assert env.evaluate_quadruple(0, parameters={'jump': 1, 'dephasing': 2}).environment[1].constant == qzero(2)
@@ -103,11 +104,11 @@ def test_environment_add_direct():
 
 def test_natural_system_init_empty():
     sys = NaturalSystem()
-    assert sys.hamiltonian.evaluate(0) == Qobj()
-    assert sys.environment.evaluate(0) == Qobj()
+    assert_empty_qobj(sys.hamiltonian.evaluate(0))
+    assert_empty_qobj(sys.environment.evaluate(0))
     assert sys.states == {}
     assert sys.operators == {}
-    assert sys.evaluate(0) == Qobj()
+    assert_empty_qobj(sys.evaluate(0))
 
 
 def _make_natural_system():

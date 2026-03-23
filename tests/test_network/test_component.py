@@ -10,6 +10,7 @@ from numpy import pi, sqrt, cos, sin
 from copy import deepcopy
 from pytest import raises
 from zpgenerator.time.parameters import Parameters
+from tests_assertions import assert_empty_qobj
 
 
 d = Parameters.DELIMITER
@@ -31,7 +32,7 @@ def test_component_scattering():
     assert comp.permutations == [[0, 1, 2], [0, 2, 1]]
 
     quad = comp.evaluate_quadruple(0)
-    assert quad.hamiltonian.evaluate(0) == Qobj()
+    assert_empty_qobj(quad.hamiltonian.evaluate(0))
     assert [env.evaluate(0) for env in quad.environment] == []
     assert [trn.evaluate(0) for trn in quad.transitions] == [qzero(1), qzero(1), qzero(1)]
     assert quad.scatterer.evaluate(0) == \

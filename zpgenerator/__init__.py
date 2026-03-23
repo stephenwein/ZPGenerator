@@ -1,5 +1,3 @@
-from ._qutip_compat import patch_qutip_qobj_kwargs
-patch_qutip_qobj_kwargs()
 from .time import *
 from .system import *
 from .elements import *

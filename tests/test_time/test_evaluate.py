@@ -1,6 +1,7 @@
 from zpgenerator.time.evaluate import *
 from qutip import destroy, create, qeye, tensor, qzero, num
 from numpy import cos, sin
+from tests_assertions import assert_empty_qobj
 
 
 def test_func():
@@ -102,8 +103,8 @@ def test_opfunc_methods():
     foo = lambda t, args: args['a'] * t ** 4
     pair = OpFuncPair(op=destroy(2), func=foo)
     assert pair.tensor_insert(0, [2, 2]).op == tensor(destroy(2), qeye(2))
-    assert pair.pad_right(2).op == Qobj(inpt=[[0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
-    assert pair.pad_left(2).op == Qobj(inpt=[[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0]])
+    assert pair.pad_right(2).op == Qobj([[0, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]])
+    assert pair.pad_left(2).op == Qobj([[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 1], [0, 0, 0, 0]])
     assert pair.spre().op == spre(destroy(2))
     assert pair.spost().op == spost(destroy(2))
     assert pair.dag().op == create(2)
@@ -119,7 +120,7 @@ def test_opfunc_methods():
 
 def test_evop_init():
     op = EvaluatedOperator()
-    assert op.evaluate(0) == Qobj()
+    assert_empty_qobj(op.evaluate(0))
 
     op = EvaluatedOperator(constant=destroy(2))
     assert op.constant == destroy(2)

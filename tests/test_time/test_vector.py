@@ -6,6 +6,7 @@ from zpgenerator.time.pulse import PulseBase
 from zpgenerator.time.parameters import Parameters
 from qutip import destroy, create, qzero, spre, spost, sprepost
 from pytest import raises
+from tests_assertions import assert_empty_qobj
 
 d = Parameters.DELIMITER
 
@@ -100,7 +101,7 @@ def test_time_operator_with_dirac():
 
 def test_time_operator_collection_init_empty():
     comp_op = TimeOperatorCollection()
-    assert comp_op.partial_evaluate(0).constant == Qobj()
+    assert_empty_qobj(comp_op.partial_evaluate(0).constant)
     assert not comp_op.is_time_dependent(0)
     assert not comp_op.support(0)
     assert comp_op.operators == comp_op.functions

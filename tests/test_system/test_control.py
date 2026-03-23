@@ -5,6 +5,7 @@ from qutip import destroy, create, qzero, fock, qeye, sprepost, liouvillian, Qob
 from numpy import pi, exp, sqrt
 from math import isclose
 from zpgenerator.time.parameters import Parameters
+from tests_assertions import assert_empty_qobj
 
 
 d = Parameters.DELIMITER
@@ -96,7 +97,7 @@ def test_controlled_system_init_empty():
     assert sys.dim is None
     assert sys.subdims is None
     assert sys.parameters == []
-    assert sys.evaluate(0) == Qobj()
+    assert_empty_qobj(sys.evaluate(0))
 
 
 def _make_controlled_system():
