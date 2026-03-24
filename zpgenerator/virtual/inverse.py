@@ -1,6 +1,6 @@
 from .tree import VTree
 from .configuration import ParityDetectorGate, FourierDetectorGate
-from qutip import Qobj, ptrace
+from .backends import qutip_backend as qb
 from numpy import array, einsum, complex64, ndarray, reshape, apply_along_axis, nditer, prod
 from numpy.fft import ifftn
 from string import ascii_lowercase
@@ -65,8 +65,11 @@ class GeneratingTensor:
     def reshape_states(self):
         if self.point_rank != 0:
             dim = prod(self.subdims)
-            self.tensor = apply_along_axis(lambda subarray: _DummyState(state=Qobj(reshape(subarray, (dim, dim)),
-                                                                                   dims=[self.subdims, self.subdims])),
+            self.tensor = apply_along_axis(lambda subarray: _DummyState(
+                                               state=qb.state_from_array(
+                                                   reshape(subarray, (dim, dim)),
+                                                   dims=[self.subdims, self.subdims],
+                                               )),
                                            axis=-1,
                                            arr=reshape(self.tensor, self.tensor.shape[0:-2] + tuple([-1])))
 
@@ -106,13 +109,15 @@ class GeneratingTensor:
         if dims or select:
             for k, v in results.items():
                 if dims:
-                    v.dims = [dims, dims]
+                    v = qb.with_square_dims(v, dims)
                 if select:
-                    results[k] = ptrace(v, select)
+                    results[k] = qb.partial_trace(v, select)
+                else:
+                    results[k] = v
 
         return results
 
 
 class _DummyState:
-    def __init__(self, state: Qobj):
+    def __init__(self, state: qb.BackendState):
         self.state = state

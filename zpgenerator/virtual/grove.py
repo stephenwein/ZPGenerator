@@ -4,13 +4,13 @@ from .branch import MeasurementBranch
 from .tree import VTree
 from .state import VState
 from .propagator import AVirtualPropagator
+from .backends import qutip_backend as qb
 from typing import List, Union
-from qutip import Qobj
 
 
 class VGrove:
 
-    def __init__(self, initial_time: float, states: List[Qobj]):
+    def __init__(self, initial_time: float, states: List[qb.BackendState]):
         self.trees = [VTree(initial_state=VState(state=state, time=initial_time)) for state in states]
         self.time = initial_time
 
@@ -33,11 +33,11 @@ class VGrove:
     def add_branches(self, time: float, branches: List[MeasurementBranch]):
         return self._add_branches(time, branches)
 
-    def apply_operator(self, op: Union[Qobj, EvaluatedDiracOperator]):
+    def apply_operator(self, op: Union[qb.BackendOperator, EvaluatedDiracOperator]):
         for tree in self:
             tree.apply_operator(op)
 
-    def apply_generator(self, op: Qobj):
+    def apply_generator(self, op: qb.BackendOperator):
         for tree in self:
             tree.apply_generator(op)
 

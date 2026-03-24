@@ -42,9 +42,9 @@ def test_generator_time_independent():
     # assert isinstance(vprop, VPropTI)  # commented out since we use VPropHTD instead (much faster)
     assert vprop.jumps == []
 
-    vstate.propagate(vprop, times[1])
-    assert approx(fidelity(vstate, Qobj([[0.07153569 + 0.j, 0 + 0.05927914j],
-                                         [0. - 0.05927914j, 0.92846431 + 0.j]]))) == 1
+    vprop.propagate(vstate, times[1])
+    assert approx(fidelity(vstate.qobj, Qobj([[0.07153569 + 0.j, 0 + 0.05927914j],
+                                              [0. - 0.05927914j, 0.92846431 + 0.j]]))) == 1
 
     vstate = VState(state=istate, time=itime)
     vdetector = PhysicalDetectorGate(resolution=5, efficiency=0.5, gate=[itime, 5])

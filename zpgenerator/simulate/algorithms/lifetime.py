@@ -45,10 +45,10 @@ def compute_lifetime(source: AComponent,
         propagator = generator.build_propagator(t=t0, parameters=parameters, options=options)
 
         if t0 < endpoints[0]:  # propagate normally
-            state.propagate(propagator, t1)
+            propagator.propagate(state, t1)
         elif endpoints[0] <= t0 < endpoints[-1]:  # evaluate lifetimes and append results
             tlist = list(linspace(t0, t1, round((t1 - t0) / diff * resolution) + 2))
-            result = state.propagate(propagator, t1, tlist=tlist)
+            result = propagator.propagate(state, t1, tlist=tlist)
             if tlist:
                 eoptimes = eoptimes[0:-1] + result.times
                 eopvalues = eopvalues[0:-1] + list(result.expect[0])

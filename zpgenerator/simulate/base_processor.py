@@ -251,7 +251,7 @@ class ProcessorBase:
             self._initialize_grove(initial_time, parameters, bin_list, basis)
         times = build_propagation_times(current_time=self._current_time, component_times=times, final_time=final_time)
 
-        generator = Generator(self.component, binned_detectors=binned_detectors, precision=self.precision)
+        propagator_factory = Generator(self.component, binned_detectors=binned_detectors, precision=self.precision)
 
         # Main propagation algorithm
         for i in range(1, len(times)):  # Propagate from initial time to final time
@@ -265,7 +265,7 @@ class ProcessorBase:
                 branch_order += grove.add_branches(t0, branches)
 
             # build propagator
-            propagator = generator.build_propagator(t0, parameters=parameters, options=options)
+            propagator = propagator_factory.build_propagator(t0, parameters=parameters, options=options)
 
             # apply propagator to all trees in the grove
             grove.propagate(propagator, t1)  # propagate to next stop time

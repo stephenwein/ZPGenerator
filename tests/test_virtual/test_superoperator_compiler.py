@@ -141,7 +141,7 @@ def test_vprophtd_keeps_unnormalized_trace_with_superoperator_jumps():
         options={"normalize_output": True, "atol": 1e-10, "rtol": 1e-10, "nsteps": 200000},
     )
 
-    assert _dense_close(vstate, unnormalized.states[-1], tol=5e-9)
+    assert _dense_close(vstate.qobj, unnormalized.states[-1], tol=5e-9)
     assert abs(complex(vstate.tr()) - 1.0) > 1e-6
     assert not _dense_close(normalized.states[-1], unnormalized.states[-1], tol=1e-6)
 
