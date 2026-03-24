@@ -5,9 +5,9 @@ setup(
     author="quandela",
     version='0.3.0',
     packages=find_packages(include=["zpgenerator", "zpgenerator.*"]),
-    python_requires=">=3.9,<3.13",
+    python_requires=">=3.10,<3.13",
     install_requires=[
-        'qutip>=5,<6',
+        'qutip>=5.2.3,<6',
         'numpy',
         'scipy',
         'frozendict',
