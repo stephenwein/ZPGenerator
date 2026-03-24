@@ -403,6 +403,30 @@ def test_unmasked_component_add_component():
     p.add(1, ppnr)
 
 
+def test_component_connect_preserves_closed_output_on_offset_insert():
+    comp = Component(masked=False)
+    comp.add(ScattererBase(Operator([[1, 2], [3, 4]])))
+    comp.output.ports[0].close()
+
+    comp.add(1, ScattererBase(Operator([[5, 6], [7, 8]])))
+
+    assert comp.permutations == [[0, 1, 2], [2, 0, 1]]
+    assert [port.is_closed for port in comp.input.ports] == [False, False, False]
+    assert [port.is_closed for port in comp.output.ports] == [True, False, False]
+
+
+def test_component_connect_padding_keeps_closed_ports_order():
+    comp = Component(masked=False)
+    comp.add(ScattererBase(Operator([[1, 2], [3, 4]])))
+    comp.output.ports[1].close()
+
+    comp.add(2, ScattererBase(Operator([[5, 6], [7, 8]])))
+
+    assert comp.modes == 5
+    assert comp.permutations == [[0, 1, 2, 3, 4], [2, 3, 4, 0, 1]]
+    assert [port.is_closed for port in comp.output.ports] == [False, True, False, False, False]
+
+
 def test_initial_state_emitter():
     emitter = Emitter.two_level()
     emitter.initial_state = emitter.states['|g>']
@@ -429,3 +453,32 @@ def test_component_add_invalid_type_raises():
     comp = Component()
     with raises(TypeError):
         comp.add(0, object())
+
+
+def test_component_add_invalid_position_type_raises():
+    comp = Component()
+    with raises(TypeError, match="Position must be an integer index or named port string"):
+        comp.add(1.5, BeamSplitter())
+
+
+def test_component_add_negative_position_raises():
+    comp = Component()
+    with raises(ValueError, match="Position must be non-negative"):
+        comp.add(-1, BeamSplitter())
+
+    comp.add(BeamSplitter())
+    with raises(ValueError, match="Position must be non-negative"):
+        comp.add(-1, DetectorGate())
+
+
+def test_component_add_detector_requires_existing_modes():
+    comp = Component()
+    with raises(ValueError, match="before adding at least one element"):
+        comp.add(0, DetectorGate())
+
+
+def test_component_add_detector_out_of_range_raises():
+    comp = Component()
+    comp.add(BeamSplitter())
+    with raises(ValueError, match="does not exist"):
+        comp.add(2, DetectorGate())

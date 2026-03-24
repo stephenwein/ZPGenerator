@@ -1,8 +1,11 @@
 from ..time import TimeFunctionCollection, merge_times, EvaluatedQuadruple
 from ..time.evaluate.cache import DefaultCache
 from ..system import AElement, ScattererBase, AScatteringMatrix
+from .composition_request import CompositionRequest
+from .connection_plan import ConnectionAction, ConnectionPlan
 from .element import ElementCollection
 from .detector import ADetectorGate
+from .mode_mapping import normalize_mode_position, is_mode_position_token
 from .port import InputLayer, OutputLayer, OutputPort, InputPort
 from typing import Union, List
 from abc import abstractmethod
@@ -144,6 +147,8 @@ class Component(AComponent):
                     if i < self.unmasked_position(position)].count(False)
 
     def get_port_number(self, position: Union[str, int]) -> int:
+        position = normalize_mode_position(position)
+
         if isinstance(position, str):
             if not self.elements:
                 raise ValueError("Processor has no ports.")
@@ -174,11 +179,11 @@ class Component(AComponent):
     # it is silly that Perceval doesn't consider 'position' a keyword argument in the second argument position
     @staticmethod
     def _resolve_add_call(position, element):
-        if isinstance(position, (int, str)):
-            if element is None:
+        if element is None:
+            if is_mode_position_token(position):
                 raise ValueError("Please specify an element to add")
-            return position, element
-        return 0, position
+            return 0, position
+        return normalize_mode_position(position), element
 
     @staticmethod
     def _coerce_element(element):
@@ -200,30 +205,72 @@ class Component(AComponent):
             name = None
         return element, parameters, name
 
+    @classmethod
+    def _build_composition_request(cls,
+                                   position,
+                                   element,
+                                   parameters: dict = None,
+                                   name: str = None,
+                                   bin_name: str = None) -> CompositionRequest | None:
+        position, element = cls._resolve_add_call(position, element)
+        if element is None:
+            return None
+        return CompositionRequest(
+            position=position,
+            element=element,
+            parameters=parameters,
+            name=name,
+            bin_name=bin_name,
+        )
+
+    def _normalize_composition_request(self, request: CompositionRequest) -> CompositionRequest:
+        element = self._coerce_element(request.element)
+        position = self.get_port_number(request.position)
+        parameters = request.parameters
+        name = request.name
+
+        if isinstance(element, AComponent):
+            element, parameters, name = self._prepare_component_for_binning(
+                element,
+                parameters,
+                name,
+                request.bin_name,
+            )
+
+        return CompositionRequest(
+            position=position,
+            element=element,
+            parameters=parameters,
+            name=name,
+            bin_name=request.bin_name,
+        )
+
     def add(self,
             position: Union[int, str, ComponentInputTypes],
             element: ComponentInputTypes = None,
             parameters: dict = None, name: str = None, bin_name: str = None):
-        position, element = self._resolve_add_call(position, element)
-        if element is None:
+        # Component composition stays single-target for now. Processor.add expands
+        # multi-position mappings before delegating here.
+        request = self._build_composition_request(position, element, parameters=parameters, name=name, bin_name=bin_name)
+        if request is None:
             return
-        if isinstance(element, list):
-            if not element:
+        if isinstance(request.element, list):
+            if not request.element:
                 return
-            for elm in element:
-                self.add(position, elm, parameters=parameters, name=name, bin_name=bin_name)
+            for elm in request.element:
+                self.add(request.position, elm,
+                         parameters=request.parameters,
+                         name=request.name,
+                         bin_name=request.bin_name)
             return
 
-        element = self._coerce_element(element)
-        position = self.get_port_number(position)
+        request = self._normalize_composition_request(request)
 
-        if isinstance(element, AElement):
-            if isinstance(element, AComponent):
-                element, parameters, name = self._prepare_component_for_binning(element, parameters, name, bin_name)
-            self._add_element(element, position, parameters, name)
-        elif isinstance(element, ADetectorGate):
-            self._add_detector(element, position, parameters, name, bin_name)
-        elif element is not None:
+        if isinstance(request.element, AElement):
+            self._add_element(request.element, request.position, request.parameters, request.name)
+        elif isinstance(request.element, ADetectorGate):
+            self._add_detector(request.element, request.position, request.parameters, request.name, request.bin_name)
+        elif request.element is not None:
             raise TypeError("Can only add AElement or ADetectorGate to a Component")
 
     def _add_element(self, element: AElement, position: int = None, parameters: dict = None, name: str = None):
@@ -239,9 +286,12 @@ class Component(AComponent):
     def _add_detector(self, element: ADetectorGate, position: int = None,
                       parameters: dict = None, name: str = None, bin_name: str = None):
         position = self.unmasked_position(position)
-        if self.elements:
-            if self.output.ports[position].is_closed:
-                raise ValueError("Selected port to connect must not be closed.")
+        if not self.elements:
+            raise ValueError("Cannot add a detector before adding at least one element.")
+        if position >= self.modes:
+            raise ValueError("Selected port to connect does not exist.")
+        if self.output.ports[position].is_closed:
+            raise ValueError("Selected port to connect must not be closed.")
         self._output.ports[position].add(element, parameters=parameters, name=name, bin_name=bin_name)
 
     def __floordiv__(self, other):
@@ -263,69 +313,112 @@ class Component(AComponent):
             self._connect(element)
         return super()._check_add(element, parameters, name)
 
+    def _compute_new_mode_number(self, element: AElement) -> int:
+        connected_modes = min(self.output_modes, element.input_modes) - self._next_pos
+        return self.modes + element.modes - connected_modes
+
+    @staticmethod
+    def _partition_element_ports(element: AElement):
+        if isinstance(element, AComponent):
+            element_active_ports = []
+            element_inactive_ports = []
+            for i, input_port in enumerate(element.input.ports):
+                port_to_add = element.output.ports[i]
+                if input_port.is_closed:
+                    element_inactive_ports.append([i, input_port, port_to_add])
+                else:
+                    element_active_ports.append([i, input_port, port_to_add])
+            return element_active_ports, element_inactive_ports
+        return [[i, InputPort(), OutputPort()] for i in range(element.modes)], []
+
+    def _plan_connection(self, element: AElement) -> ConnectionPlan:
+        new_mode_number = self._compute_new_mode_number(element)
+        element_active_ports, element_inactive_ports = self._partition_element_ports(element)
+        active_port_indices = iter(port[0] for port in element_active_ports)
+        inactive_port_indices = [port[0] for port in element_inactive_ports]
+        element_extra_mode_number = iter(range(element.modes, new_mode_number))
+        position_counter = self._next_pos
+        existing_actions = []
+
+        for i, output_port in enumerate(self.output.ports):
+            if output_port.is_open:
+                if position_counter:
+                    existing_actions.append(ConnectionAction(
+                        component_port_index=i,
+                        permutation_target=next(element_extra_mode_number),
+                        kind='preserve',
+                    ))
+                    position_counter -= 1
+                else:
+                    try:
+                        port_index = next(active_port_indices)
+                        existing_actions.append(ConnectionAction(
+                            component_port_index=i,
+                            permutation_target=port_index,
+                            kind='attach',
+                            element_port_index=port_index,
+                        ))
+                    except StopIteration:
+                        existing_actions.append(ConnectionAction(
+                            component_port_index=i,
+                            permutation_target=next(element_extra_mode_number),
+                            kind='preserve',
+                        ))
+            else:
+                existing_actions.append(ConnectionAction(
+                    component_port_index=i,
+                    permutation_target=next(element_extra_mode_number),
+                    kind='preserve',
+                ))
+
+        padding_targets = tuple(next(element_extra_mode_number) for _ in range(position_counter))
+        remaining_element_port_indices = tuple(sorted(list(active_port_indices) + inactive_port_indices))
+        permutation = tuple(action.permutation_target for action in existing_actions) + \
+            padding_targets + remaining_element_port_indices
+
+        return ConnectionPlan(
+            new_mode_number=new_mode_number,
+            existing_actions=tuple(existing_actions),
+            padding_targets=padding_targets,
+            remaining_element_port_indices=remaining_element_port_indices,
+            permutation=permutation,
+        )
+
+    def _build_connection_layers(self, plan: ConnectionPlan, element_port_lookup: dict[int, list]):
+        new_output = OutputLayer()
+        new_input = InputLayer()
+
+        for action in plan.existing_actions:
+            new_input.add(deepcopy(self.input.ports[action.component_port_index]))
+            output_port = deepcopy(self.output.ports[action.component_port_index])
+            if action.kind == 'attach':
+                port = element_port_lookup[action.element_port_index]
+                new_output.add(deepcopy(port[2]))
+            else:
+                new_output.add(output_port)
+
+        for _ in plan.padding_targets:
+            new_output.add(OutputPort())
+            new_input.add(InputPort())
+
+        for port_index in plan.remaining_element_port_indices:
+            port = element_port_lookup[port_index]
+            new_input.add(deepcopy(port[1]))
+            new_output.add(deepcopy(port[2]))
+
+        return new_input, new_output
+
     def _connect(self, element):
         """
         Connects open input ports of an element to the open outputs ports of a component
         :param element: an element to connect
         """
-        connected_modes = min(self.output_modes, element.input_modes) - self._next_pos
-        new_mode_number = self.modes + element.modes - connected_modes
-        position_counter = self._next_pos
+        element_active_ports, element_inactive_ports = self._partition_element_ports(element)
+        element_port_lookup = {port[0]: port for port in element_active_ports + element_inactive_ports}
+        plan = self._plan_connection(element)
+        new_input, new_output = self._build_connection_layers(plan=plan, element_port_lookup=element_port_lookup)
 
-        if isinstance(element, AComponent):
-            element_active_port = []
-            element_inactive_port = []
-            for i, port in enumerate(element.input.ports):
-                port_to_add = element.output.ports[i]
-                if port.is_closed:
-                    element_inactive_port.append([i, port, port_to_add])
-                else:
-                    element_active_port.append([i, port, port_to_add])
-            element_active_port = iter(element_active_port)
-            element_inactive_port = iter(element_inactive_port)
-        else:
-            element_active_port = iter([[i, InputPort(), OutputPort()] for i in range(element.modes)])
-            element_inactive_port = iter([])
-
-        new_output = OutputLayer()
-        new_input = InputLayer()
-
-        perm = []
-        element_extra_mode_number = iter(range(element.modes, new_mode_number))
-
-        for i in range(self.modes):
-            new_input.add(deepcopy(self.input.ports[i]))
-            output_port = deepcopy(self.output.ports[i])
-            if output_port.is_open:
-                if position_counter:
-                    new_output.add(output_port)  # treat as closed
-                    perm.append(next(element_extra_mode_number))
-                    position_counter -= 1
-                else:
-                    try:
-                        port = next(element_active_port)
-                        new_output.add(deepcopy(port[2]))
-                        perm.append(port[0])
-                    except StopIteration:
-                        new_output.add(output_port)  # treat as closed
-                        perm.append(next(element_extra_mode_number))
-            else:  # port is closed
-                new_output.add(output_port)
-                perm.append(next(element_extra_mode_number))
-
-        if position_counter:
-            for i in range(position_counter):
-                new_output.add(OutputPort())
-                new_input.add(InputPort())
-                perm.append(next(element_extra_mode_number))
-
-        remaining_ports = sorted(list(element_active_port) + list(element_inactive_port))
-        for port in remaining_ports:
-            new_input.add(deepcopy(port[1]))
-            new_output.add(deepcopy(port[2]))
-            perm.append(port[0])
-
-        self._adjust_orderings(perm)
+        self._adjust_orderings(list(plan.permutation))
         self._output = new_output
         self.set_children([self._objects, self._output.ports])
         self._input = new_input

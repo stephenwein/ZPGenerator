@@ -2,6 +2,7 @@ from .quality import ProcessorQuality
 from .algorithms.distributions import CorrelationDistribution, StateDistribution, ChannelDistribution
 from ..misc.display import Display
 from ..network import AComponent, ADetectorGate, Component
+from ..network.mode_mapping import ModeMapping
 from ..system import AElement
 from typing import Union, List
 from qutip import Qobj
@@ -31,13 +32,14 @@ class Processor(ProcessorQuality):
         """
         return len(self.bin_labels)
 
-    def add(self, position: Union[int, List[int]], element: Union[AElement, ADetectorGate],
+    def add(self, position: Union[int, str, List[Union[int, str]], tuple[Union[int, str], ...]],
+            element: Union[AElement, ADetectorGate],
             parameters: dict = None, name: str = None, bin_name: str = None):
-        if isinstance(position, list):
-            for i in position:
-                super().add(i, element, parameters, name, bin_name)
-        else:
-            super().add(position, element, parameters, name, bin_name)
+        # Processor.add accepts repeated targets as a convenience API, similar in spirit
+        # to Perceval's higher-level composition helpers.
+        mapping = ModeMapping.from_input(position)
+        for mapped_position in mapping:
+            super().add(mapped_position, element, parameters, name, bin_name)
 
     def display(self, elements=False):
         if elements:

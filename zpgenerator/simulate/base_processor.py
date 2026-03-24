@@ -98,7 +98,7 @@ class ProcessorBase:
     def modes(self):
         return self.component.modes - self.component.output.closed_modes
 
-    def add(self, position: int, element: Union[AElement, ADetectorGate],
+    def add(self, position: Union[int, str], element: Union[AElement, ADetectorGate],
             parameters: dict = None, name: str = None, bin_name: str = None):
         self._reset_grove()
         self.component.add(position, element, parameters, name, bin_name)
