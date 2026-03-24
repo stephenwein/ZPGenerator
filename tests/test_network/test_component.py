@@ -445,3 +445,16 @@ def test_component_add_negative_position_raises():
     comp.add(BeamSplitter())
     with raises(ValueError, match="Position must be non-negative"):
         comp.add(-1, DetectorGate())
+
+
+def test_component_add_detector_requires_existing_modes():
+    comp = Component()
+    with raises(ValueError, match="before adding at least one element"):
+        comp.add(0, DetectorGate())
+
+
+def test_component_add_detector_out_of_range_raises():
+    comp = Component()
+    comp.add(BeamSplitter())
+    with raises(ValueError, match="does not exist"):
+        comp.add(2, DetectorGate())

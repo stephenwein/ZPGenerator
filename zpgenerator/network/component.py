@@ -251,9 +251,12 @@ class Component(AComponent):
     def _add_detector(self, element: ADetectorGate, position: int = None,
                       parameters: dict = None, name: str = None, bin_name: str = None):
         position = self.unmasked_position(position)
-        if self.elements:
-            if self.output.ports[position].is_closed:
-                raise ValueError("Selected port to connect must not be closed.")
+        if not self.elements:
+            raise ValueError("Cannot add a detector before adding at least one element.")
+        if position >= self.modes:
+            raise ValueError("Selected port to connect does not exist.")
+        if self.output.ports[position].is_closed:
+            raise ValueError("Selected port to connect must not be closed.")
         self._output.ports[position].add(element, parameters=parameters, name=name, bin_name=bin_name)
 
     def __floordiv__(self, other):

@@ -265,3 +265,9 @@ def test_processor_add_named_port():
 
     assert p.bins == 1
     assert p.bin_labels == ['D-left']
+
+
+def test_processor_add_detector_requires_existing_modes():
+    p = Processor()
+    with pytest.raises(ValueError, match="before adding at least one element"):
+        p.add(0, DetectorGate(resolution=1))
