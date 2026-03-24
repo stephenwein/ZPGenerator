@@ -7,7 +7,7 @@ setup(
     packages=find_packages(include=["zpgenerator", "zpgenerator.*"]),
     python_requires=">=3.9,<3.13",
     install_requires=[
-        'qutip',
+        'qutip>=5,<6',
         'numpy',
         'scipy',
         'frozendict',

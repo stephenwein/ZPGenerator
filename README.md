@@ -26,7 +26,8 @@ experiments.
 
 ZPGenerator requires:
 
-* Above Python 3.8 and below Python 3.12
+* Python 3.9 to 3.12
+* QuTiP 5.x
 
 ## GitHub
 ```bash
