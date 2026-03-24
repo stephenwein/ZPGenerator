@@ -15,9 +15,19 @@ class SourceComponent(Component):
                  emitter: EmitterBase = None,
                  parameters: dict = None,
                  name: str = None):
-
-        super().__init__(elements=emitter, parameters=parameters, name=name)
         self._quality_processor = None
+        super().__init__(elements=emitter, parameters=parameters, name=name)
+
+    def _invalidate_quality_processor(self):
+        self._quality_processor = None
+
+    def add(self, position, element=None, parameters: dict = None, name: str = None, bin_name: str = None):
+        self._invalidate_quality_processor()
+        return super().add(position, element, parameters=parameters, name=name, bin_name=bin_name)
+
+    def update_default_parameters(self, parameters: dict = None):
+        self._invalidate_quality_processor()
+        return super().update_default_parameters(parameters)
 
     @property
     def quality(self):
