@@ -415,3 +415,17 @@ def test_component_times():
     source = Component(Emitter.two_level())
     source.add(0, PhysicalDetectorGate(resolution=1, efficiency=0.1, ignore_zero=True))
     assert source.times() == []
+
+
+def test_component_add_named_port_zero():
+    comp = Component()
+    comp.add(BeamSplitter())
+    comp.output.ports[0].port_name = 'left'
+    comp.add('left', DetectorGate(gate=[0, 1]), bin_name='left-bin')
+    assert comp.output.bins == 1
+
+
+def test_component_add_invalid_type_raises():
+    comp = Component()
+    with raises(TypeError):
+        comp.add(0, object())

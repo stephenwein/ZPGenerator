@@ -4,6 +4,7 @@ from zpgenerator.network import DetectorGate
 from numpy import exp, log
 from math import isclose
 from qutip import Qobj
+import pytest
 
 
 def make_emitter_splitter():
@@ -151,3 +152,105 @@ def test_sequential_conditional_states():
     p.initial_state = states[0]
     prbs = p.probs()
     isclose(prbs[0], 1 / 4, abs_tol=10 ** -(p.precision))
+
+
+def test_continue_simulation_rejects_changed_bins():
+    p = make_emitter_splitter()
+    p.add(1, DetectorGate(resolution=1), bin_name='D2')
+
+    p.probs(bin_list=['D'], reset=True)
+    with pytest.raises(ValueError, match="Cannot continue simulation"):
+        p.probs(bin_list=['D2'], reset=False)
+
+
+def test_continue_simulation_rejects_changed_parameters():
+    emitter = TwoLevelEmitter(name='TLS')
+    p = Processor()
+    p.add(0, emitter)
+    p.add(0, DetectorGate(resolution=1, gate=lambda args: [0, args['stop']], parameters={'stop': 0.5}), bin_name='D')
+
+    p.initial_state = emitter.states['|e>']
+    p.initial_time = 0
+    p.final_time = 1
+
+    p.probs(parameters={'stop': 0.5}, reset=True)
+    with pytest.raises(ValueError, match="Cannot continue simulation"):
+        p.probs(parameters={'stop': 0.7}, reset=False)
+
+
+def test_topology_change_invalidates_continue_state():
+    p = make_emitter_splitter()
+    p.probs(reset=True)
+
+    p.add(1, BeamSplitter())
+    with pytest.raises(RuntimeError, match="No simulation to continue"):
+        p.probs(reset=False)
+
+
+def test_contains_unnormalised_detector_accumulates_across_tensors(monkeypatch):
+    class DummyTensor:
+        def __init__(self, invert_value):
+            self._invert_value = invert_value
+
+        def invert(self):
+            return self._invert_value
+
+        def extract_results(self, dims=None, select=None):
+            return {(0,): 0.25}
+
+    class DummyGrove:
+        def build_tensors(self, point_rank, precision):
+            return [DummyTensor(True), DummyTensor(False)]
+
+    p = make_emitter_splitter()
+
+    def fake_simulate(*args, **kwargs):
+        p._grove = DummyGrove()
+        p._branch_order = [0]
+
+    monkeypatch.setattr(p, "_simulate_grove", fake_simulate)
+
+    p.probs(chop=False)
+    assert p._contains_unnormalised_detector is True
+
+
+def test_channel_extraction_does_not_mutate_source_state_dims(monkeypatch):
+    class DummyTensor:
+        def __init__(self, state):
+            self._state = state
+
+        def invert(self):
+            return False
+
+        def extract_results(self, dims=None, select=None):
+            return {(0,): self._state}
+
+    class DummyGrove:
+        def __init__(self, state):
+            self._state = state
+
+        def build_tensors(self, point_rank, precision):
+            return [DummyTensor(self._state) for _ in range(4)]
+
+    p = make_emitter_splitter()
+    source_state = Qobj([[1, 0], [0, 0]], dims=[[2], [2]])
+
+    def fake_simulate(*args, **kwargs):
+        p._grove = DummyGrove(source_state)
+        p._branch_order = [0]
+
+    monkeypatch.setattr(p, "_simulate_grove", fake_simulate)
+
+    p.conditional_channels(dims=[1, 2], basis=[p.component._elements[0].states['|g>'],
+                                                p.component._elements[0].states['|e>']])
+    assert source_state.dims == [[2], [2]]
+
+
+def test_processor_requires_detector_for_simulation():
+    p = Processor()
+    p.add(0, TwoLevelEmitter(name='TLS'))
+    p.initial_time = 0
+    p.final_time = 1
+
+    with pytest.raises(ValueError, match="at least one detector"):
+        p.probs()
