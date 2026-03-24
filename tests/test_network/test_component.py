@@ -429,3 +429,19 @@ def test_component_add_invalid_type_raises():
     comp = Component()
     with raises(TypeError):
         comp.add(0, object())
+
+
+def test_component_add_invalid_position_type_raises():
+    comp = Component()
+    with raises(TypeError, match="Position must be an integer index or named port string"):
+        comp.add(1.5, BeamSplitter())
+
+
+def test_component_add_negative_position_raises():
+    comp = Component()
+    with raises(ValueError, match="Position must be non-negative"):
+        comp.add(-1, BeamSplitter())
+
+    comp.add(BeamSplitter())
+    with raises(ValueError, match="Position must be non-negative"):
+        comp.add(-1, DetectorGate())

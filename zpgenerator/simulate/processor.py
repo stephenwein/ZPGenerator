@@ -31,7 +31,7 @@ class Processor(ProcessorQuality):
         """
         return len(self.bin_labels)
 
-    def add(self, position: Union[int, List[int]], element: Union[AElement, ADetectorGate],
+    def add(self, position: Union[int, str, List[Union[int, str]]], element: Union[AElement, ADetectorGate],
             parameters: dict = None, name: str = None, bin_name: str = None):
         if isinstance(position, list):
             for i in position:

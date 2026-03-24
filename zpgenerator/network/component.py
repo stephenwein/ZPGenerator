@@ -10,6 +10,7 @@ from copy import deepcopy
 from qutip import Qobj
 from frozendict import frozendict
 from itertools import chain
+from numbers import Integral
 
 
 class AComponent(ElementCollection):
@@ -144,6 +145,15 @@ class Component(AComponent):
                     if i < self.unmasked_position(position)].count(False)
 
     def get_port_number(self, position: Union[str, int]) -> int:
+        if isinstance(position, bool):
+            raise TypeError("Position must be an integer index or named port string.")
+        if isinstance(position, Integral):
+            position = int(position)
+        elif not isinstance(position, str):
+            raise TypeError("Position must be an integer index or named port string.")
+        if isinstance(position, int) and position < 0:
+            raise ValueError("Position must be non-negative.")
+
         if isinstance(position, str):
             if not self.elements:
                 raise ValueError("Processor has no ports.")
@@ -174,11 +184,13 @@ class Component(AComponent):
     # it is silly that Perceval doesn't consider 'position' a keyword argument in the second argument position
     @staticmethod
     def _resolve_add_call(position, element):
-        if isinstance(position, (int, str)):
-            if element is None:
+        if element is None:
+            if isinstance(position, (Integral, str)) and not isinstance(position, bool):
                 raise ValueError("Please specify an element to add")
-            return position, element
-        return 0, position
+            return 0, position
+        if not (isinstance(position, (Integral, str)) and not isinstance(position, bool)):
+            raise TypeError("Position must be an integer index or named port string.")
+        return position, element
 
     @staticmethod
     def _coerce_element(element):

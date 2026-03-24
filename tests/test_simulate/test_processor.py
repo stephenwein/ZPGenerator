@@ -254,3 +254,14 @@ def test_processor_requires_detector_for_simulation():
 
     with pytest.raises(ValueError, match="at least one detector"):
         p.probs()
+
+
+def test_processor_add_named_port():
+    p = Processor()
+    p.add(0, BeamSplitter(name='BS'))
+    p.component.output.ports[0].port_name = 'left'
+
+    p.add('left', DetectorGate(resolution=1), bin_name='D-left')
+
+    assert p.bins == 1
+    assert p.bin_labels == ['D-left']
