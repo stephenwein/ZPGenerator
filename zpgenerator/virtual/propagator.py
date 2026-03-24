@@ -177,7 +177,8 @@ class VPropTI(AVirtualPropagator):
                  generator: Qobj,
                  jumps: list[Qobj] = None,
                  ):
-        assert generator.isoper or generator.issuper, "gen must be an operator or superoperator"
+        if not (generator.isoper or generator.issuper):
+            raise TypeError("gen must be an operator or superoperator")
         self.generator = liouvillian(generator) if generator.isoper else generator
         self.jumps = [] if jumps is None else jumps
 
@@ -249,7 +250,7 @@ def _collapse_qobj_list(terms):
     if not static_terms:
         if time_terms:
             return time_terms
-        assert False, "Cannot build a generator from an empty term list."
+        raise ValueError("Cannot build a generator from an empty term list.")
     static = sum(static_terms[1:], static_terms[0])
     return [static, *time_terms]
 

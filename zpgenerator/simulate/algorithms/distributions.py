@@ -6,6 +6,7 @@ from math import isclose
 from typing import Union, List
 from numpy import real
 import matplotlib.pyplot as plt
+import warnings
 
 
 class Distribution(TupleDict):
@@ -50,7 +51,8 @@ class ScalarDistribution(Distribution):
         super().__init__(dictionary, precision)
 
     def __setitem__(self, key, value):
-        assert isinstance(key, tuple), "Key must be a tuple"
+        if not isinstance(key, tuple):
+            raise TypeError("Key must be a tuple")
         if self.type == 'real' or self.type == 'positive':
             value = real(value)
         if self.type == 'positive':
@@ -130,7 +132,11 @@ class PhotonNumberDistribution(ProbabilityDistribution):
 
     def precision_check(self, precision):
         if self[len(self) - 1] > 10 ** (2 - precision) and len(self) > 2:
-            print("Warning: truncation may be too low to achieve requested precision.")
+            warnings.warn(
+                "Truncation may be too low to achieve requested precision.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
     def gn(self, order: int):
         return round(compute_intensity_correlation(self, order), self.display_precision)
@@ -172,7 +178,8 @@ class CorrelationDistribution(ScalarDistribution):
     """
 
     def __setitem__(self, key, value):
-        assert isinstance(key, tuple), "Key must be a tuple"
+        if not isinstance(key, tuple):
+            raise TypeError("Key must be a tuple")
         super().__setitem__(key, value)
 
     def __getitem__(self, item):

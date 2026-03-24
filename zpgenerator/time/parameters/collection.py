@@ -80,7 +80,7 @@ class ParameterizedCollection(ParameterizedObject, AParameterizedCollection):
             self._add(objects, parameters, name)
             self._check_objects()
         else:
-            assert False, "Cannot add object of type {t}.".format(t=type(objects))
+            raise TypeError("Cannot add object of type {t}.".format(t=type(objects)))
 
     def _add(self, objects, parameters: dict = None, name: str = None):
         self._objects.append(self._check_add(objects, parameters, name))

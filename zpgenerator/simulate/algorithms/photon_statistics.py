@@ -4,6 +4,7 @@ from ...virtual import PhysicalDetectorGate
 from math import factorial
 from scipy.special import binom
 from collections import UserDict
+import warnings
 
 
 def compute_average_photon_number(pn: UserDict) -> float:
@@ -45,7 +46,13 @@ def estimate_intensity_correlation(source: AComponent, port: int, pseudo_limit: 
         g2 = abs(4 * (1 - 2 * points[1] + points[0]) / (1 - points[0]) ** 2)  # lossy limit formula
         return g2, abs(1 - points[0])/pseudo_limit
     else:
-        print("Warning: no light detected in mode " + ('' if source.modes == 1 else str(port)) + ', ' +
-              ('g2' if source.modes == 1 else 'g2 ' + str(port)) +
-              " cannot be defined.")
+        warnings.warn(
+            "No light detected in mode "
+            + ('' if source.modes == 1 else str(port))
+            + ', '
+            + ('g2' if source.modes == 1 else 'g2 ' + str(port))
+            + " cannot be defined.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         return None, abs(1 - points[0])/pseudo_limit

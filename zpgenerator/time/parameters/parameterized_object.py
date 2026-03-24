@@ -222,7 +222,8 @@ class ParameterizedObject(AParameterizedObject):
 
     def update_default_parameters(self, parameters: dict = None):
         parameters = parameters if parameters else {}
-        assert all(self.uses_parameter(name) for name in parameters.keys()), "One or more parameter does not exist."
+        if not all(self.uses_parameter(name) for name in parameters.keys()):
+            raise ValueError("One or more parameter does not exist.")
         self._update_default_parameters(parameters)
 
     def _update_default_parameters(self, parameters: dict = None):

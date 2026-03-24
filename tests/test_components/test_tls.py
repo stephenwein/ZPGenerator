@@ -2,6 +2,7 @@ from zpgenerator.elements import Emitter
 from zpgenerator.components.sources import SourceComponent
 from zpgenerator.components import Source, Circuit
 from zpgenerator.dynamic import Pulse
+import pytest
 
 
 def test_initial_state_tls_source():
@@ -53,3 +54,8 @@ def test_source_quality_processor_invalidates_after_parameter_update():
     source.mu()
     assert source._quality_processor is not None
     assert source._quality_processor is not old_processor
+
+
+def test_circuit_from_perceval_requires_compute_unitary():
+    with pytest.raises(TypeError, match="compute_unitary"):
+        Circuit.from_perceval(object())

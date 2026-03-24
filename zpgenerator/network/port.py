@@ -119,7 +119,8 @@ class InputLayer(PortLayer):
         super().__init__(ports)
 
     def _check_add(self, port: InputPort) -> InputPort:
-        assert isinstance(port, InputPort), "Can only add input ports to an input layer"
+        if not isinstance(port, InputPort):
+            raise TypeError("Can only add input ports to an input layer")
         return port
 
     def pad(self, number: int, port_type=InputPort, is_closed: bool = True):
@@ -136,7 +137,8 @@ class OutputLayer(PortLayer):
         super().__init__(ports)
 
     def _check_add(self, port: OutputPort) -> OutputPort:
-        assert isinstance(port, OutputPort), "Can only add output ports to an output layer"
+        if not isinstance(port, OutputPort):
+            raise TypeError("Can only add output ports to an output layer")
         return port
 
     @property
