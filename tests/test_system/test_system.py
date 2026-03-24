@@ -8,6 +8,7 @@ from qutip import Qobj, fock, destroy, create, liouvillian, qzero, sprepost, qey
 from copy import deepcopy
 from numpy import pi, sqrt
 from zpgenerator.time.parameters import Parameters
+from tests_assertions import assert_empty_qobj
 
 
 d = Parameters.DELIMITER
@@ -21,7 +22,7 @@ def test_multibodysystem_init_empty():
     assert system.operators == {}
     assert system.bodies == 0
     assert system.name == 'pair'
-    assert system.evaluate(0) == Qobj()
+    assert_empty_qobj(system.evaluate(0))
 
 
 def _make_system():
@@ -123,10 +124,10 @@ def test_system_base_init_empty():
     system = MultiBodyEmitter()
     assert system.bodies == 0
     assert system.subsystems == {}
-    assert system.coupling.evaluate(0) == Qobj()
+    assert_empty_qobj(system.coupling.evaluate(0))
     assert system.subdims is None
     assert system.dim is None
-    assert system.evaluate(0) == Qobj()
+    assert_empty_qobj(system.evaluate(0))
 
 
 def test_system_base_init():
@@ -142,7 +143,7 @@ def test_system_base_init():
                                              c_ops=[tensor(destroy(2), qeye(2), qeye(2)),
                                                     tensor(qeye(2), destroy(2), qeye(2)),
                                                     tensor(qeye(2), qeye(2), destroy(2))])
-    assert system.coupling.evaluate(0) == Qobj()
+    assert_empty_qobj(system.coupling.evaluate(0))
     assert system.coupling.dim is None
     assert system.coupling.subdims is None
 

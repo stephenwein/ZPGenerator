@@ -145,16 +145,16 @@ class Component(AComponent):
 
     def get_port_number(self, position: Union[str, int]) -> int:
         if isinstance(position, str):
-            if self.elements:
-                number = self.output.get_port_number(position)
-                assert number, "No port named " + position + "."
-                position = number
-            else:
-                assert False, "Processor has no ports."
-        umasked_position = self.unmasked_position(position)
-        if self.is_masked and self._elements and umasked_position < self.modes:
-            assert not self.output.ports[umasked_position].is_closed, \
-                "Selected port to connect must not be closed."
+            if not self.elements:
+                raise ValueError("Processor has no ports.")
+            number = self.output.get_port_number(position)
+            if number is None:
+                raise ValueError("No port named " + position + ".")
+            position = number
+        unmasked_position = self.unmasked_position(position)
+        if self.is_masked and self._elements and unmasked_position < self.modes:
+            if self.output.ports[unmasked_position].is_closed:
+                raise ValueError("Selected port to connect must not be closed.")
             return self.masked_position(position)
         else:
             return position
@@ -172,41 +172,66 @@ class Component(AComponent):
 
     # annoying workaround to make signature of networks similar to Perceval while keeping other collections consistent
     # it is silly that Perceval doesn't consider 'position' a keyword argument in the second argument position
+    @staticmethod
+    def _resolve_add_call(position, element):
+        if isinstance(position, (int, str)):
+            if element is None:
+                raise ValueError("Please specify an element to add")
+            return position, element
+        return 0, position
+
+    @staticmethod
+    def _coerce_element(element):
+        if hasattr(element, 'compute_unitary'):
+            return Component(ScattererBase(Qobj(element.compute_unitary())))
+        return element
+
+    @staticmethod
+    def _prepare_component_for_binning(element: AComponent, parameters: dict = None,
+                                       name: str = None, bin_name: str = None):
+        if not bin_name:
+            return element, parameters, name
+        element = deepcopy(element)
+        element.bin_all_detectors(bin_name)
+        if parameters or name:
+            element.update_default_parameters(parameters)
+            parameters = None
+            element.name = name
+            name = None
+        return element, parameters, name
+
     def add(self,
             position: Union[int, str, ComponentInputTypes],
             element: ComponentInputTypes = None,
             parameters: dict = None, name: str = None, bin_name: str = None):
+        position, element = self._resolve_add_call(position, element)
+        if element is None:
+            return
+        if isinstance(element, list):
+            if not element:
+                return
+            for elm in element:
+                self.add(position, elm, parameters=parameters, name=name, bin_name=bin_name)
+            return
 
-        if isinstance(position, int) or isinstance(position, str):
-            assert element, "Please specify an element to add"
-        else:
-            element = position
-            position = 0
-
-        if hasattr(element, 'compute_unitary'):
-            element = Component(ScattererBase(Qobj(element.compute_unitary())))
-
+        element = self._coerce_element(element)
         position = self.get_port_number(position)
 
         if isinstance(element, AElement):
-            if isinstance(element, AComponent) and bin_name:
-                element = deepcopy(element)
-                element.bin_all_detectors(bin_name)
-                if parameters or name:  # do this here so we don't deepcopy twice
-                    element.update_default_parameters(parameters)
-                    parameters = None
-                    element.name = name
-                    name = None
+            if isinstance(element, AComponent):
+                element, parameters, name = self._prepare_component_for_binning(element, parameters, name, bin_name)
             self._add_element(element, position, parameters, name)
         elif isinstance(element, ADetectorGate):
             self._add_detector(element, position, parameters, name, bin_name)
+        elif element is not None:
+            raise TypeError("Can only add AElement or ADetectorGate to a Component")
 
     def _add_element(self, element: AElement, position: int = None, parameters: dict = None, name: str = None):
         if self._elements:
             unmasked_position = self.unmasked_position(position)
             if unmasked_position < self.modes:
-                assert self.output.ports[unmasked_position].is_open, \
-                    "Selected port to connect must be open."
+                if not self.output.ports[unmasked_position].is_open:
+                    raise ValueError("Selected port to connect must be open.")
         position = self._position_to_add(position)  # maps the input position (masked or unmasked) to an open position
         self._next_pos = position
         super().add(element, parameters, name)
@@ -215,7 +240,8 @@ class Component(AComponent):
                       parameters: dict = None, name: str = None, bin_name: str = None):
         position = self.unmasked_position(position)
         if self.elements:
-            assert not self.output.ports[position].is_closed, "Selected port to connect must not be closed."
+            if self.output.ports[position].is_closed:
+                raise ValueError("Selected port to connect must not be closed.")
         self._output.ports[position].add(element, parameters=parameters, name=name, bin_name=bin_name)
 
     def __floordiv__(self, other):

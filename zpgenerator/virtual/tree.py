@@ -91,7 +91,7 @@ class VNode:
     def build_state_tensor(self, tensor: np.array, coo: list):
         if not self.future:
             state = self.virtual_state if self.virtual_state.isoper else self.virtual_state * self.virtual_state.dag()
-            tensor[tuple(coo)] = np.asarray(state)
+            tensor[tuple(coo)] = state.full()
         else:
             for j, node in enumerate(self.future):
                 node.build_state_tensor(tensor, coo + [j])
@@ -163,6 +163,10 @@ class VTree:
 
     def _convert_to_numeric(self, tensor):
         if isinstance(tensor, np.ndarray) and tensor.dtype == object:
+            if tensor.ndim == 0:
+                return self._convert_to_numeric(tensor.item())
             return np.stack([self._convert_to_numeric(elem) for elem in tensor])
+        if isinstance(tensor, Qobj):
+            return tensor.full()
         else:
             return tensor

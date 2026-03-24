@@ -5,17 +5,19 @@ from math import prod
 from copy import deepcopy
 from typing import List
 from numpy import array, asarray
+from .dims import is_trivial_dim, canonical_dim_list
+
 
 # A function that inserts operator op at position n in the tensor space of dims
 def tensor_insert(op: Qobj, n, dims):
-    assert (op.dims[0][0] if op.issuper else op.dims[0]) == (dims[n] if isinstance(dims[n], list) else [dims[n]]), \
+    assert canonical_dim_list(op.dims[0][0] if op.issuper else op.dims[0]) == canonical_dim_list(dims[n]), \
         "Position to insert must match the dimensions of the operator"
     opvec = []
     for i in range(0, len(dims)):
         if i == n:
             opvec.append(op)
         else:
-            if dims[i] != [1]:
+            if not is_trivial_dim(dims[i]):
                 opvec.append(spre(qeye(dims[i]))) if op.issuper else opvec.append(qeye(dims[i]))
     new_op = super_tensor(opvec) if op.issuper else tensor(opvec)
     return new_op
@@ -40,14 +42,17 @@ def tensor_dict(dict0: dict, dict1: dict) -> dict:
 
 
 def concat_diag(op0: Qobj, op1: Qobj):
-    return Qobj(block_diag([op0.data, op1.data], format='csr'))
+    matrix = block_diag([op0.full(), op1.full()], format='csr')
+    if op0.issuper:
+        return Qobj(matrix, superrep=op0.superrep)
+    return Qobj(matrix)
 
 
 def permutation_qobj(perm: List[int]) -> Qobj:
     dim = len(perm)
     id = list(range(0, len(perm)))
     matrix = csr_matrix(([1] * dim, (id, perm)), shape=(dim, dim))
-    return Qobj(inpt=matrix)
+    return Qobj(matrix)
 
 
 def id_flatten(objects, *default, remove: list = None):
@@ -87,4 +92,4 @@ def expmv_qutip(time: float, m, v):
 
 
 def expmv(time: float, m, v):
-    return expmv_scipy(time, m, v)
+    return expmv_qutip(time, m, v)

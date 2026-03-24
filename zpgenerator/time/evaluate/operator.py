@@ -4,7 +4,7 @@
 from .tensor import tensor_insert, concat_diag, permutation_qobj
 from qutip import Qobj, qeye, qzero, spre, spost, lindblad_dissipator, liouvillian
 from typing import Union, List
-from numpy import conj
+from numpy import conj, isnan
 from math import prod
 from .cache import DefaultCache
 
@@ -230,6 +230,47 @@ class EvaluatedOperator(EvaluatedFunction):
             self.constant = 0 * self.variable[0].op if self.variable else Qobj()
         self._vartype = OpFuncPair
 
+    @staticmethod
+    def _is_scalar_empty(op):
+        if not isinstance(op, Qobj) or op.shape != (1, 1) or op.dims != [[1], [1]]:
+            return False
+        value = op.full()[0, 0]
+        return isnan(value.real) or isnan(value.imag)
+
+    @staticmethod
+    def _is_numeric_zero(op):
+        return not isinstance(op, Qobj) and op == 0
+
+    def _is_empty_operator(self):
+        return not self.variable and (self._is_scalar_empty(self.constant) or self._is_numeric_zero(self.constant))
+
+    def __add__(self, other):
+        if isinstance(other, EvaluatedOperator):
+            if self._is_empty_operator():
+                return other
+            if other._is_empty_operator():
+                return self
+            try:
+                return super().__add__(other)
+            except ValueError:
+                if isinstance(self.constant, Qobj) and isinstance(other.constant, Qobj):
+                    left = self.constant.copy()
+                    right = other.constant.copy()
+                    left.dims = _clean_dim_tree(left.dims)
+                    right.dims = _clean_dim_tree(right.dims)
+                    if left.dims == right.dims:
+                        return EvaluatedOperator(constant=left + right,
+                                                 variable=self.variable + other.variable)
+                raise
+        return super().__add__(other)
+
+    def __rmul__(self, other):
+        if not callable(other) and not isinstance(other, (EvaluatedOperator, EvaluatedFunction, Func, Qobj)):
+            if other == 0 * other:
+                return EvaluatedOperator(constant=0 * self.constant,
+                                         variable=[other * v for v in self.variable])
+        return super().__rmul__(other)
+
     def _clean(self):
         zero = 0 * self.constant
         self.variable = [v for v in self.variable if v.op != zero]
@@ -237,20 +278,42 @@ class EvaluatedOperator(EvaluatedFunction):
     # Not sure if these should change self in place or copy... below might be slow but perhaps more predictable
     def tensor_insert(self, i: int, dims: list):
         return EvaluatedOperator(
-            constant=tensor_insert(self.constant, i, dims) if self.constant.isoper or self.constant.issuper
+            constant=tensor_insert(self.constant, i, dims)
+            if isinstance(self.constant, Qobj) and not self._is_scalar_empty(self.constant) and
+            (self.constant.isoper or self.constant.issuper)
             else self.constant,
             variable=[v.tensor_insert(i, dims) for v in self.variable])
 
     def concatenate(self, other):
-        return EvaluatedOperator(constant=concat_diag(self.constant, other.constant),
+        if self._is_empty_operator():
+            return other
+        if other._is_empty_operator():
+            return self
+        if isinstance(self.constant, Qobj):
+            left_constant = self.constant
+        elif isinstance(other.constant, Qobj):
+            left_constant = 0 * other.constant
+        else:
+            left_constant = Qobj()
+
+        if isinstance(other.constant, Qobj):
+            right_constant = other.constant
+        elif isinstance(self.constant, Qobj):
+            right_constant = 0 * self.constant
+        else:
+            right_constant = Qobj()
+
+        return EvaluatedOperator(constant=concat_diag(left_constant, right_constant),
                                  variable=[v.pad_right(other.subdims) for v in self.variable] +
                                           [v.pad_left(self.subdims) for v in other.variable])
 
     def spre(self):
-        return EvaluatedOperator(constant=spre(self.constant), variable=[v.spre() for v in self.variable])
+        constant = spre(self.constant) if isinstance(self.constant, Qobj) else self.constant
+        return EvaluatedOperator(constant=constant, variable=[v.spre() for v in self.variable])
 
     def spost(self):
-        return EvaluatedOperator(constant=spost(self.constant), variable=[v.spost() for v in self.variable])
+        constant = spost(self.constant) if isinstance(self.constant, Qobj) else self.constant
+        return EvaluatedOperator(constant=constant, variable=[v.spost() for v in self.variable])
 
     def jump(self):
         return self.spre() * self.dag().spost()
@@ -259,19 +322,22 @@ class EvaluatedOperator(EvaluatedFunction):
         return self.dag() * self
 
     def lind(self):
-        return EvaluatedOperator(constant=lindblad_dissipator(self.constant),
+        constant = lindblad_dissipator(self.constant) if isinstance(self.constant, Qobj) else self.constant
+        return EvaluatedOperator(constant=constant,
                                  variable=[v.lind() for v in self.variable])
 
     def liou(self):
-        return EvaluatedOperator(constant=liouvillian(self.constant),
+        constant = liouvillian(self.constant) if isinstance(self.constant, Qobj) else self.constant
+        return EvaluatedOperator(constant=constant,
                                  variable=[v.liou() for v in self.variable])
 
     def dag(self):
-        return EvaluatedOperator(constant=self.constant.dag(), variable=[v.dag() for v in self.variable])
+        constant = self.constant.dag() if isinstance(self.constant, Qobj) else self.constant
+        return EvaluatedOperator(constant=constant, variable=[v.dag() for v in self.variable])
 
     @property
     def is_super(self):
-        return self.constant.issuper
+        return self.constant.issuper if isinstance(self.constant, Qobj) else False
 
     def list_form(self):
         variable = [v.list_form() for v in self.variable]
@@ -279,8 +345,12 @@ class EvaluatedOperator(EvaluatedFunction):
 
     @property
     def subdims(self):
-        mat = self.constant
-        return mat.dims[0][0] if mat.issuper else mat.dims[0]
+        if isinstance(self.constant, Qobj):
+            mat = self.constant
+            return mat.dims[0][0] if mat.issuper else mat.dims[0]
+        if self.variable:
+            return self.variable[0].subdims
+        return [0]
 
     @property
     def dim(self):
@@ -294,11 +364,14 @@ class EvaluatedOperator(EvaluatedFunction):
         return self.constant + sum(v.op * v.func(t, parameters) for v in self.variable)
 
     def element(self, i: int, j: int):
-        return EvaluatedFunction(constant=self.constant[i, j], variable=[v.element(i, j) for v in self.variable])
+        constant = self.constant[i, j] if isinstance(self.constant, Qobj) else 0
+        return EvaluatedFunction(constant=constant, variable=[v.element(i, j) for v in self.variable])
 
     def reshape(self, subdims: List[int] = None):
         subdims = _clean_dims(self.subdims) if subdims is None else subdims
         assert prod(subdims) == self.dim, "Subdimension product must match the total dimension."
+        if not isinstance(self.constant, Qobj):
+            self.constant = qzero(subdims)
         self.constant.dims = [[subdims, subdims], [subdims, subdims]] if self.constant.issuper else [subdims, subdims]
         for v in self.variable:
             v.op.dims = [[subdims, subdims], [subdims, subdims]] if v.op.issuper else [subdims, subdims]
@@ -322,3 +395,12 @@ def evop_umv(s: List[EvaluatedOperator], m: EvaluatedOperator, v: List[Evaluated
 def _clean_dims(subdims: List[int]):
     new_dims = [i for i in subdims if i != 0 and i != 1]
     return new_dims if new_dims else [1]
+
+
+def _clean_dim_tree(dims):
+    if isinstance(dims, list):
+        if dims and all(isinstance(v, int) for v in dims):
+            new_dims = [v for v in dims if v != 1]
+            return new_dims if new_dims else [1]
+        return [_clean_dim_tree(v) for v in dims]
+    return dims

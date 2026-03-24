@@ -66,7 +66,7 @@ class Operator(ParameterizedObject, AOperator):
         :param name: a name for the object to distinguish parameters.
         """
         super().__init__(parameters=parameters, name=name)
-        self.matrix = Qobj(inpt=matrix) if isinstance(matrix, list) or isinstance(matrix, ndarray) else matrix
+        self.matrix = Qobj(matrix) if isinstance(matrix, list) or isinstance(matrix, ndarray) else matrix
         self.is_callback = callable(matrix) and not isinstance(matrix, Qobj)
         self.scale = 1
         self._check_operator()

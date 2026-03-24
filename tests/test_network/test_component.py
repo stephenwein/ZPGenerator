@@ -10,6 +10,7 @@ from numpy import pi, sqrt, cos, sin
 from copy import deepcopy
 from pytest import raises
 from zpgenerator.time.parameters import Parameters
+from tests_assertions import assert_empty_qobj
 
 
 d = Parameters.DELIMITER
@@ -31,7 +32,7 @@ def test_component_scattering():
     assert comp.permutations == [[0, 1, 2], [0, 2, 1]]
 
     quad = comp.evaluate_quadruple(0)
-    assert quad.hamiltonian.evaluate(0) == Qobj()
+    assert_empty_qobj(quad.hamiltonian.evaluate(0))
     assert [env.evaluate(0) for env in quad.environment] == []
     assert [trn.evaluate(0) for trn in quad.transitions] == [qzero(1), qzero(1), qzero(1)]
     assert quad.scatterer.evaluate(0) == \
@@ -414,3 +415,17 @@ def test_component_times():
     source = Component(Emitter.two_level())
     source.add(0, PhysicalDetectorGate(resolution=1, efficiency=0.1, ignore_zero=True))
     assert source.times() == []
+
+
+def test_component_add_named_port_zero():
+    comp = Component()
+    comp.add(BeamSplitter())
+    comp.output.ports[0].port_name = 'left'
+    comp.add('left', DetectorGate(gate=[0, 1]), bin_name='left-bin')
+    assert comp.output.bins == 1
+
+
+def test_component_add_invalid_type_raises():
+    comp = Component()
+    with raises(TypeError):
+        comp.add(0, object())

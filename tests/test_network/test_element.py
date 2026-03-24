@@ -3,6 +3,7 @@ from zpgenerator.system import ScattererBase, HamiltonianBase, EnvironmentBase, 
 from zpgenerator.time import Operator, TimeOperator, CompositeTimeOperator
 from qutip import Qobj, qeye, destroy, create, liouvillian, tensor, fock
 from numpy import sin, cos, pi
+from tests_assertions import assert_empty_qobj
 
 
 def test_comp_coll_init_empty():
@@ -10,7 +11,7 @@ def test_comp_coll_init_empty():
     assert comp.modes == 0
     assert comp.elements == {}
     assert comp.times() == []
-    assert comp.evaluate_quadruple(0).evaluate(0) == Qobj()
+    assert_empty_qobj(comp.evaluate_quadruple(0).evaluate(0))
 
 
 def test_comp_coll_init():
@@ -19,7 +20,7 @@ def test_comp_coll_init():
     assert comp.modes == 2
     assert comp.elements == {'_ScattererBase': sc}
     assert comp.times() == []
-    assert comp.evaluate_quadruple(0).evaluate(0) == Qobj()
+    assert_empty_qobj(comp.evaluate_quadruple(0).evaluate(0))
     assert comp.evaluate_quadruple(0).scatterer.evaluate(0) == sc.evaluate(0)
 
 

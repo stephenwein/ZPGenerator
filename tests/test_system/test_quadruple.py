@@ -3,6 +3,7 @@ from zpgenerator.time import OpFuncPair, TimeOperator, CompositeTimeOperator
 from numpy import sin, cos, pi
 from qutip import create, destroy, qeye, tensor, num, spre, spost, lindblad_dissipator
 from zpgenerator.time.parameters import Parameters
+from tests_assertions import assert_empty_qobj
 
 d = Parameters.DELIMITER
 
@@ -11,11 +12,11 @@ def test_evaluatequad_init_empty():
     quad = EvaluatedQuadruple()
     assert quad.modes == 0
     assert quad.subdims == [0]
-    assert quad.hamiltonian.evaluate(0) == Qobj()
+    assert_empty_qobj(quad.hamiltonian.evaluate(0))
     assert quad.environment == []
     assert quad.transitions == []
-    assert quad.scatterer.evaluate(0) == qeye(0)
-    assert quad.evaluate(0) == Qobj()
+    assert_empty_qobj(quad.scatterer.evaluate(0))
+    assert_empty_qobj(quad.evaluate(0))
 
 
 def test_evaluatequad_init_qobj():
@@ -26,7 +27,7 @@ def test_evaluatequad_init_qobj():
     assert quad.hamiltonian.evaluate(0) == destroy(2)
     assert quad.environment == []
     assert quad.transitions == []
-    assert quad.scatterer.evaluate(0) == qeye(0)
+    assert_empty_qobj(quad.scatterer.evaluate(0))
     assert quad.evaluate(0) == liouvillian(destroy(2))
 
 
@@ -108,12 +109,12 @@ def test_evaluatequad_tensor_variable():
 def test_evaluatequad_add():
     quad0 = make_full_quad(3, 1)
     quad1 = make_full_quad(3, 2)
-    quad1.scatterer.constant = Qobj(inpt=[[1, 1], [1, 1]])
+    quad1.scatterer.constant = Qobj([[1, 1], [1, 1]])
     quad = quad0 + quad1
     assert quad.subdims == [3]
     assert quad.hamiltonian.evaluate(0) == 2 * create(3) * destroy(3)
     assert quad.modes == 3
-    assert quad.scatterer.constant == Qobj(inpt=[[1, 0, 0], [0, 1, 1], [0, 1, 1]])
+    assert quad.scatterer.constant == Qobj([[1, 0, 0], [0, 1, 1], [0, 1, 1]])
     assert quad.evaluate(0) == liouvillian(2 * create(3) * destroy(3),
                                            [create(3) * destroy(3)] * 2 +
                                            [destroy(3)] * 3)
@@ -164,7 +165,9 @@ def test_quad_cascaded_mul_constant():
         tensor(destroy(2), qeye(3)) + tensor(qeye(2), destroy(3)),
         tensor(destroy(2), qeye(3)) + tensor(qeye(2), destroy(3))]
     assert quad2.scatterer.evaluate(0) == qeye(2)
-    assert quad2.evaluate(0) == liouvillian(ham_expected, c_ops=c_ops_expected)
+    expected = liouvillian(ham_expected, c_ops=[op for op in c_ops_expected if op.isoper]) + \
+               sum([op for op in c_ops_expected if op.issuper])
+    assert quad2.evaluate(0) == expected
 
 
 def test_quad_cascaded_mul_variable():

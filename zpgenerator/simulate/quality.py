@@ -2,7 +2,6 @@ from .algorithms import compute_photon_number_distribution, compute_brightness, 
     estimate_intensity_correlation, estimate_hom_visibility, estimate_hom_visibility_with_coherence, compute_lifetime, \
     compute_wigner_function
 from typing import List
-from qutip import Options
 from .base_processor import ProcessorBase
 from ..network import AComponent
 from ..system import AElement
@@ -205,7 +204,7 @@ class ProcessorQuality(ProcessorBase):
                  resolution: int = 600,
                  start: float = None,
                  end: float = None,
-                 options: Options = None) -> Lifetime:
+                 options: dict = None) -> Lifetime:
         name, port = self._name_to_port(port)
         lifetime = compute_lifetime(self.component, port, resolution, start, end, parameters, options)
         self.quality.update({name: {'lifetime': lifetime}})
@@ -220,7 +219,7 @@ class ProcessorQuality(ProcessorBase):
                       end: float = None,
                       label: str = None,
                       scale: float = 1,
-                      options: Options = None):
+                      options: dict = None):
         if port == 'All' or isinstance(port, list):
             ports = list(range(self.modes)) if port == 'All' else port
             return [self.plot_lifetime(i, parameters=parameters, resolution=resolution,
@@ -237,7 +236,7 @@ class ProcessorQuality(ProcessorBase):
             return lifetime.plot(label if label else name, scale=scale)
 
     def wigner(self, port: Union[int, str] = None, alpha: Union[complex, List[complex]] = 0, parameters: dict = None,
-               pseudo_limit: float = 0.01, options: Options = None, lo_resolution=600, lo_fluctuations=2):
+               pseudo_limit: float = 0.01, options: dict = None, lo_resolution=600, lo_fluctuations=2):
         """
         :param port: the port of the source being analysed
         :param alpha: a complex amplitude in phase space or a list of such amplitudes
@@ -256,5 +255,4 @@ class ProcessorQuality(ProcessorBase):
                                          pseudo_limit, lo_resolution, lo_fluctuations)
         self.quality.update({name: {'wigner': wigner}})
         return wigner
-
 

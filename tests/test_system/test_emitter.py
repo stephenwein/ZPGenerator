@@ -2,6 +2,7 @@ from zpgenerator.system.emitter import *
 from test_control import _make_controlled_system
 from qutip import destroy, num, create
 from zpgenerator.time.parameters import Parameters
+from tests_assertions import assert_empty_qobj
 
 
 d = Parameters.DELIMITER
@@ -22,8 +23,8 @@ def test_emitter_base_init_empty():
     assert emitter.parameters == []
     assert emitter.states == {}
     assert emitter.operators == {}
-    assert emitter.evaluate(0) == Qobj()
-    assert emitter.transitions.evaluate(0) == Qobj()
+    assert_empty_qobj(emitter.evaluate(0))
+    assert_empty_qobj(emitter.transitions.evaluate(0))
     assert emitter.modes == 0
 
 
@@ -50,7 +51,7 @@ def test_emitter_base_init():
     assert emitter.states == {}
     assert emitter.operators == {}
     assert emitter.evaluate(0) == system.evaluate(0)
-    assert emitter.transitions.evaluate(0) == Qobj() # transitions do not have a Liouvillian
+    assert_empty_qobj(emitter.transitions.evaluate(0)) # transitions do not have a Liouvillian
     assert emitter.evaluate_quadruple(0).transitions[0].constant == destroy(2)
 
 

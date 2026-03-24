@@ -1,7 +1,8 @@
 from .operator import EvaluatedOperator, evop_mv, evop_umv
 from typing import List
-from qutip import qzero, qeye, Qobj, liouvillian
+from qutip import qzero, qeye, Qobj as _Qobj, liouvillian
 from copy import deepcopy
+from .dims import qzero_or_empty, qeye_or_empty
 
 
 class EvaluatedQuadruple:
@@ -29,15 +30,19 @@ class EvaluatedQuadruple:
             else:
                 self._subdims = [0]
 
-        if not self.transitions:
-            if scatterer:
-                self.transitions = [EvaluatedOperator(constant=Qobj(inpt=0))] * scatterer.dim
+        if not self.transitions and scatterer is not None:
+            if not (isinstance(scatterer, EvaluatedOperator) and scatterer._is_empty_operator()):
+                zero_transition = qzero_or_empty(self.subdims)
+                self.transitions = [EvaluatedOperator(constant=zero_transition) for _ in range(scatterer.dim)]
 
-        self.scatterer = EvaluatedOperator(constant=qeye(self.modes)) \
-            if scatterer is None else scatterer
+        if scatterer is None:
+            self.scatterer = EvaluatedOperator(constant=qeye(self.modes)) if self.modes > 0 else EvaluatedOperator()
+        else:
+            self.scatterer = scatterer
 
-        assert self.modes == self.scatterer.dim, \
-            "Scattering matrices must have a dimension matching the number of modes"
+        if self.modes > 0:
+            assert self.modes == self.scatterer.dim, \
+                "Scattering matrices must have a dimension matching the number of modes"
 
     @property
     def modes(self):
@@ -86,6 +91,8 @@ class EvaluatedQuadruple:
 
             self_vector = [trn.tensor_insert(0, subdims) for trn in self.transitions]
             other_vector = [trn.tensor_insert(1, subdims) for trn in other.transitions]
+            for vec in self_vector + other_vector:
+                vec.reshape()
 
             hamiltonian = self.hamiltonian.tensor_insert(0, subdims) + other.hamiltonian.tensor_insert(1, subdims)
 
@@ -96,8 +103,8 @@ class EvaluatedQuadruple:
             transitions = [transitions[i] + other_vector[i] for i in range(0, len(transitions))]
 
             # Quantum cascaded interaction superoperator
-            if (not any(v.constant == Qobj([[0]]) for v in other_vector)) and \
-                    (not any(v.constant == Qobj([[0]]) for v in self_vector)):
+            if (not any(_is_trivial_evop(v) for v in other_vector)) and \
+                    (not any(_is_trivial_evop(v) for v in self_vector)):
                 # for v in other_vector:
                 #     print(v.constant)
                 #     for pair in v.variable:
@@ -111,11 +118,20 @@ class EvaluatedQuadruple:
             hamiltonian.reshape()
             for env in environment:
                 env.reshape()
+            environment = [env for env in environment if not _is_zero_evop(env)]
             for trn in transitions:
                 trn.reshape()
 
+            cascaded_scatterer = other.scatterer * self.scatterer
+            if not isinstance(cascaded_scatterer, EvaluatedOperator):
+                cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant,
+                                                       variable=cascaded_scatterer.variable)
+            if not isinstance(cascaded_scatterer.constant, _Qobj):
+                cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant * qeye_or_empty(self.modes),
+                                                       variable=cascaded_scatterer.variable)
+
             return EvaluatedQuadruple(hamiltonian=hamiltonian, environment=environment,
-                                      transitions=transitions, scatterer=other.scatterer * self.scatterer)
+                                      transitions=transitions, scatterer=cascaded_scatterer)
 
     def __rmul__(self, other):
         if other == 1:
@@ -124,18 +140,21 @@ class EvaluatedQuadruple:
             assert False, "Cannot cascade backwards"
 
 
-    def evaluate(self, t: float, parameters: dict = None) -> Qobj:
+    def evaluate(self, t: float, parameters: dict = None) -> _Qobj:
         h = self.hamiltonian.evaluate(t, parameters)
         c = [env.evaluate(t, parameters) for env in self.environment]
-        return liouvillian(H=h if h.isoper else qzero(self.environment[0].subdims),
-                           c_ops=[op for op in c if op.isoper]) + sum([op for op in c if op.issuper]) if h.isoper or c \
-            else Qobj()
+        h_is_empty = isinstance(h, _Qobj) and h.shape == (1, 1) and h.dims == [[1], [1]]
+        h_as_operator = h.isoper and not h_is_empty
+        if not (h_as_operator or c):
+            return _Qobj()
+        base_h = h if h_as_operator else qzero_or_empty(self.environment[0].subdims if c else [0])
+        return liouvillian(H=base_h, c_ops=[op for op in c if op.isoper]) + sum([op for op in c if op.issuper])
 
     def pad(self, number: int):
         mode_increase = number - self.modes
         if mode_increase > 0:
             self.scatterer = self.scatterer.concatenate(EvaluatedOperator.id(mode_increase))
-            self.transitions += [EvaluatedOperator(qzero(self.subdims)) for i in range(0, mode_increase)]
+            self.transitions += [EvaluatedOperator(qzero_or_empty(self.subdims)) for i in range(0, mode_increase)]
 
     def permute(self, perm: List[int]):
         if sorted(perm) != perm:
@@ -147,3 +166,19 @@ class EvaluatedQuadruple:
         quad.pad(len(perm))
         quad.permute(perm)
         return quad
+
+
+def _is_zero_evop(evop: EvaluatedOperator) -> bool:
+    return not evop.variable and isinstance(evop.constant, _Qobj) and evop.constant == 0 * evop.constant
+
+
+def _is_trivial_evop(evop: EvaluatedOperator) -> bool:
+    if evop.variable or not isinstance(evop.constant, _Qobj):
+        return False
+    if evop.constant.shape != (1, 1) or evop.constant.dims != [[1], [1]]:
+        return False
+    return evop.constant == 0 * evop.constant or evop.constant.full()[0, 0] != evop.constant.full()[0, 0]
+
+
+# Keep Qobj available for wildcard imports used in tests.
+Qobj = _Qobj

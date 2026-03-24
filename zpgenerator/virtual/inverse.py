@@ -65,7 +65,7 @@ class GeneratingTensor:
     def reshape_states(self):
         if self.point_rank != 0:
             dim = prod(self.subdims)
-            self.tensor = apply_along_axis(lambda subarray: _DummyState(state=Qobj(inpt=reshape(subarray, (dim, dim)),
+            self.tensor = apply_along_axis(lambda subarray: _DummyState(state=Qobj(reshape(subarray, (dim, dim)),
                                                                                    dims=[self.subdims, self.subdims])),
                                            axis=-1,
                                            arr=reshape(self.tensor, self.tensor.shape[0:-2] + tuple([-1])))
@@ -116,4 +116,3 @@ class GeneratingTensor:
 class _DummyState:
     def __init__(self, state: Qobj):
         self.state = state
-
