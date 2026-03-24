@@ -10,10 +10,7 @@ underlying physics and, using standard methods, often require a lot of time to c
 computationally expensive to run. ZPGenerator aims to make these physics simulations accessible and fast without the
 hefty knowledge overhead, allowing for quick prototyping of photonic experiments.
 
-Currently, ZPGenerator uses `QuTiP`_ as its numerical backend. Internally, the virtual runtime now wraps
-backend state objects explicitly rather than inheriting from QuTiP types directly, which keeps the simulation
-layer cleaner and prepares the project for future backend work. At the public API level, conditional states and
-channels are still returned as QuTiP ``Qobj`` objects.
+Currently, ZPGenerator uses `QuTiP`_ as its numerical backend.
 
 Please refer to the `QuTiP documentation`_ whenever necessary.
 
