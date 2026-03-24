@@ -269,33 +269,35 @@ class Component(AComponent):
             self._connect(element)
         return super()._check_add(element, parameters, name)
 
-    def _connect(self, element):
-        """
-        Connects open input ports of an element to the open outputs ports of a component
-        :param element: an element to connect
-        """
+    def _compute_new_mode_number(self, element: AElement) -> int:
         connected_modes = min(self.output_modes, element.input_modes) - self._next_pos
-        new_mode_number = self.modes + element.modes - connected_modes
-        position_counter = self._next_pos
+        return self.modes + element.modes - connected_modes
 
+    @staticmethod
+    def _partition_element_ports(element: AElement):
         if isinstance(element, AComponent):
-            element_active_port = []
-            element_inactive_port = []
-            for i, port in enumerate(element.input.ports):
+            element_active_ports = []
+            element_inactive_ports = []
+            for i, input_port in enumerate(element.input.ports):
                 port_to_add = element.output.ports[i]
-                if port.is_closed:
-                    element_inactive_port.append([i, port, port_to_add])
+                if input_port.is_closed:
+                    element_inactive_ports.append([i, input_port, port_to_add])
                 else:
-                    element_active_port.append([i, port, port_to_add])
-            element_active_port = iter(element_active_port)
-            element_inactive_port = iter(element_inactive_port)
-        else:
-            element_active_port = iter([[i, InputPort(), OutputPort()] for i in range(element.modes)])
-            element_inactive_port = iter([])
+                    element_active_ports.append([i, input_port, port_to_add])
+            return element_active_ports, element_inactive_ports
+        return [[i, InputPort(), OutputPort()] for i in range(element.modes)], []
+
+    def _build_connection_layers(self,
+                                 element: AElement,
+                                 new_mode_number: int,
+                                 position_counter: int,
+                                 element_active_ports: list,
+                                 element_inactive_ports: list):
+        element_active_port = iter(element_active_ports)
+        element_inactive_port = iter(element_inactive_ports)
 
         new_output = OutputLayer()
         new_input = InputLayer()
-
         perm = []
         element_extra_mode_number = iter(range(element.modes, new_mode_number))
 
@@ -320,7 +322,7 @@ class Component(AComponent):
                 perm.append(next(element_extra_mode_number))
 
         if position_counter:
-            for i in range(position_counter):
+            for _ in range(position_counter):
                 new_output.add(OutputPort())
                 new_input.add(InputPort())
                 perm.append(next(element_extra_mode_number))
@@ -330,6 +332,23 @@ class Component(AComponent):
             new_input.add(deepcopy(port[1]))
             new_output.add(deepcopy(port[2]))
             perm.append(port[0])
+
+        return new_input, new_output, perm
+
+    def _connect(self, element):
+        """
+        Connects open input ports of an element to the open outputs ports of a component
+        :param element: an element to connect
+        """
+        new_mode_number = self._compute_new_mode_number(element)
+        element_active_ports, element_inactive_ports = self._partition_element_ports(element)
+        new_input, new_output, perm = self._build_connection_layers(
+            element=element,
+            new_mode_number=new_mode_number,
+            position_counter=self._next_pos,
+            element_active_ports=element_active_ports,
+            element_inactive_ports=element_inactive_ports,
+        )
 
         self._adjust_orderings(perm)
         self._output = new_output
