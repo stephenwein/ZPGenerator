@@ -1,6 +1,7 @@
 from zpgenerator.time.pulse import *
 from zpgenerator.time.function import *
 from pytest import raises
+from pytest import approx
 
 
 def test_pulse_base_inf():
@@ -32,8 +33,8 @@ def test_pulse_base_sum():
     assert pulse.evaluate(0) == 1
     assert pulse.evaluate(1) == 1
     assert pulse.evaluate(2) == 4
-    assert pulse.area() == 2 + 28/3
-    assert pulse.area(lower_limit=0) == 10
+    assert pulse.area() == approx(2 + 28/3, abs=1e-12)
+    assert pulse.area(lower_limit=0) == approx(10, abs=1e-12)
     assert pulse.plot()
 
 
@@ -44,4 +45,3 @@ def test_pulse_compose():
     assert pulse.evaluate(-1) == 1 / 2
     assert pulse.evaluate(2) == 1 / 8
     assert pulse.evaluate(4) == 0
-
