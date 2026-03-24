@@ -19,6 +19,8 @@ extensions = [
     # 'sphinxcontrib.bibtex'
 ]
 
+nbsphinx_execute = "never"
+
 bibtex_bibfiles = ['refs.bib']
 
 templates_path = ['_templates']
