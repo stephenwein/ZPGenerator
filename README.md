@@ -70,4 +70,4 @@ pytest -q
 ```
 
 Some advanced documentation notebooks, such as the Perceval conversion examples and the RUS gate tutorial,
-also require `perceval-quandela` as an optional dependency.
+also require `perceval-quandela` and, for `RUS_gate.ipynb`, `qutip-qip` as optional dependencies.

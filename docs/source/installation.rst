@@ -39,4 +39,4 @@ For a typical development workflow:
 Optional tutorial dependencies:
 
 * Some advanced notebooks use `Perceval <https://perceval.quandela.net/>`_ for circuit construction examples.
-  These notebooks require ``perceval-quandela`` in addition to the base ZPGenerator dependencies.
+  These notebooks require ``perceval-quandela`` in addition to the base ZPGenerator dependencies. ``RUS_gate.ipynb`` also requires ``qutip-qip`` under QuTiP 5.
