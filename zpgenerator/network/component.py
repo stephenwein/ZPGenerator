@@ -249,6 +249,8 @@ class Component(AComponent):
             position: Union[int, str, ComponentInputTypes],
             element: ComponentInputTypes = None,
             parameters: dict = None, name: str = None, bin_name: str = None):
+        # Component composition stays single-target for now. Processor.add expands
+        # multi-position mappings before delegating here.
         request = self._build_composition_request(position, element, parameters=parameters, name=name, bin_name=bin_name)
         if request is None:
             return

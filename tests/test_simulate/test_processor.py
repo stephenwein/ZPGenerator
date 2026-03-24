@@ -1,6 +1,6 @@
 from zpgenerator.simulate.processor import Processor
 from zpgenerator.elements import *
-from zpgenerator.network import DetectorGate
+from zpgenerator.network import Component, DetectorGate
 from numpy import exp, log
 from math import isclose
 from qutip import Qobj
@@ -288,3 +288,22 @@ def test_processor_add_rejects_invalid_mode_mapping_type():
 
     with pytest.raises(TypeError, match="integer index or named port string"):
         p.add({0: 1}, DetectorGate(resolution=1))
+
+
+def test_processor_add_nested_component_via_named_port_rebins_copy_only():
+    p = Processor()
+    p.add(0, BeamSplitter(name='parent'))
+    p.component.output.ports[0].port_name = 'left'
+
+    child = Component(masked=False, name='child')
+    child.add(BeamSplitter(name='child-bs'))
+    child.add(0, DetectorGate(resolution=1), bin_name='inner')
+
+    p.add('left', child, name='child-copy', bin_name='outer')
+
+    copied_child = list(p.component.elements.values())[-1]
+    assert copied_child is not child
+    assert copied_child.name == 'child-copy'
+    assert list(copied_child.output.binned_detectors.keys()) == ['outer']
+    assert list(child.output.binned_detectors.keys()) == ['inner']
+    assert p.bin_labels == ['outer']

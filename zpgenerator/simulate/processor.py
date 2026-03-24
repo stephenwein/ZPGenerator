@@ -35,6 +35,8 @@ class Processor(ProcessorQuality):
     def add(self, position: Union[int, str, List[Union[int, str]], tuple[Union[int, str], ...]],
             element: Union[AElement, ADetectorGate],
             parameters: dict = None, name: str = None, bin_name: str = None):
+        # Processor.add accepts repeated targets as a convenience API, similar in spirit
+        # to Perceval's higher-level composition helpers.
         mapping = ModeMapping.from_input(position)
         for mapped_position in mapping:
             super().add(mapped_position, element, parameters, name, bin_name)
