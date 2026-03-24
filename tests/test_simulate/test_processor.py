@@ -1,6 +1,7 @@
 from zpgenerator.simulate.processor import Processor
 from zpgenerator.elements import *
 from zpgenerator.network import Component, DetectorGate
+from zpgenerator.virtual.state import VState
 from numpy import exp, log
 from math import isclose
 from qutip import Qobj
@@ -90,6 +91,8 @@ def test_processor_base_simple_decay_states():
 
     assert isclose((states[0] - Qobj([[(1 - exp(-1)) / 2, 0], [0, exp(-1)]])).tr(), 0, abs_tol=1e-6)
     assert isclose((states[1] - Qobj([[(1 - exp(-1)) / 2, 0], [0, 0]])).tr(), 0, abs_tol=1e-6)
+    assert all(isinstance(state, Qobj) for state in states.values())
+    assert all(not isinstance(state, VState) for state in states.values())
 
 
 def test_processor_base_simple_decay_channels():
@@ -114,6 +117,8 @@ def test_processor_base_simple_decay_channels():
 
     assert all(isclose(abs(channels[1][i, j]), abs(ch1[i, j]), abs_tol=10 ** -p.precision)
                for i in range(4) for j in range(4))
+    assert all(isinstance(channel, Qobj) for channel in channels.values())
+    assert all(not isinstance(channel, VState) for channel in channels.values())
 
 
 def test_unnormalised_initial_state():

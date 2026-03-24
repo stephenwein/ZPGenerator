@@ -1,46 +1,83 @@
-from qutip import Qobj, liouvillian
 from ..time.evaluate import EvaluatedDiracOperator, expmv
+from .backends import qutip_backend as qb
 from typing import Union
 
 
-class VState(Qobj):
+class VState:
     """
-    A virtual state of a source conditioned on a history of virtual configurations,
-    and that can evolve in time conditioned on a current configuration.
+    A virtual runtime state with explicit metadata layered around a backend state object.
 
-    :param state: a state of the source
+    The backend payload remains available through ``qobj`` for the current QuTiP-based
+    runtime, but this wrapper no longer subclasses backend types directly.
     """
 
-    def __init__(self, state: Qobj, time: float = 0, virtual_configuration: list = None):
-        super().__init__(state)
-        self.virtual_configuration = [] if virtual_configuration is None else virtual_configuration
+    def __init__(self, state: qb.BackendState, time: float = 0, virtual_configuration: list = None):
+        self._qobj = qb.copy_state(state)
+        self.virtual_configuration = [] if virtual_configuration is None else list(virtual_configuration)
         self.time = time
 
-    def _set_state(self, state: Qobj):
-        state = state.copy()
-        self._data = state._data
-        self._dims = state._dims
-        self._isherm = state._isherm
-        self._isunitary = state._isunitary
+    @property
+    def qobj(self) -> qb.BackendState:
+        """Compatibility alias for the wrapped backend state."""
+        return self._qobj
+
+    @property
+    def dims(self):
+        return qb.state_dims(self._qobj)
+
+    @property
+    def shape(self):
+        return qb.state_shape(self._qobj)
+
+    @property
+    def isoper(self):
+        return qb.state_is_operator(self._qobj)
+
+    def _set_state(self, state: qb.BackendState):
+        self._qobj = qb.copy_state(state)
         return self
 
-    def update(self, state: Qobj = None, time: float = None, virtual_configuration: list = None):
+    def update(self, state: qb.BackendState = None, time: float = None, virtual_configuration: list = None):
         if state is not None:
             self._set_state(state)
         if time is not None:
             self.time = time
         if virtual_configuration is not None:
-            self.virtual_configuration = virtual_configuration
+            self.virtual_configuration = list(virtual_configuration)
         return self
 
+    def branched(self, configuration, pos: int = -1) -> "VState":
+        branched_state = VState(
+            state=qb.copy_state(self._qobj),
+            time=self.time,
+            virtual_configuration=list(self.virtual_configuration),
+        )
+        branch_num = len(branched_state.virtual_configuration)
+        if pos >= branch_num:
+            branched_state.virtual_configuration = (
+                branched_state.virtual_configuration + [0] * (pos - branch_num + 1)
+            )
+        elif branch_num == 0 and pos == -1:
+            branched_state.virtual_configuration = [0]
+        branched_state.virtual_configuration[pos] = configuration
+        return branched_state
+
+    def density_matrix(self) -> qb.BackendState:
+        return qb.density_matrix(self._qobj)
+
+    def tr(self):
+        return qb.trace(self._qobj)
+
+    def full(self):
+        return qb.full(self._qobj)
+
+    def dag(self):
+        return qb.dagger(self._qobj)
+
     # Apply an instantaneous operator or superoperator
-    def apply_operator(self, op: Union[Qobj, EvaluatedDiracOperator]):
-        if isinstance(op, Qobj):
-            if op.isoper:
-                rho = self if self.isoper else self * self.dag()
-                self._set_state(op * rho * op.dag())
-            else:
-                self._set_state(op(self))
+    def apply_operator(self, op: Union[qb.BackendOperator, EvaluatedDiracOperator]):
+        if qb.is_backend_object(op):
+            self._set_state(qb.apply_operator(self._qobj, op))
             return self
         elif isinstance(op, EvaluatedDiracOperator):
             if op.hamiltonian:
@@ -49,24 +86,18 @@ class VState(Qobj):
                 self.apply_operator(op.channel)
 
     # Apply an instantaneous HamiltonianBase or Liouvillian
-    def apply_generator(self, op: Qobj, time: float = 1):
-        # Could still be optimised...
-        if op.isoper:
-            op = liouvillian(op)
-
-        rho = self if self.isoper else self * self.dag()
-        self._set_state(expmv(time, op, rho))
+    def apply_generator(self, op: qb.BackendOperator, time: float = 1):
+        self._set_state(qb.apply_generator(self._qobj, op, time, expmv))
         return self
 
-    # Propagating the state forward in time given the current configuration
-    def propagate(self, propagator, t: float, tlist: list = None):
-        return propagator.propagate(self, t, tlist=tlist)
+    def __eq__(self, other):
+        if isinstance(other, VState):
+            return qb.equals(self._qobj, other._qobj)
+        return qb.equals(self._qobj, other)
 
     # QuTiP 5 changed indexing semantics. Keep legacy matrix-like behavior expected by this package.
     def __getitem__(self, item):
-        matrix = self.full()
-        if isinstance(item, tuple):
-            return matrix[item]
-        if isinstance(item, int):
-            return matrix[item:item + 1, :]
-        return matrix[item]
+        return qb.legacy_getitem(self._qobj, item)
+
+    def __getattr__(self, item):
+        return getattr(self._qobj, item)

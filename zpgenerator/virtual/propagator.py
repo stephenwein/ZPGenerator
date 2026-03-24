@@ -1,8 +1,8 @@
 from .state import VState
+from .backends import qutip_backend as qb
 from ..time import EvaluatedOperator, Func
 from .solver_options import mesolve_options
 from abc import ABC, abstractmethod
-from qutip import Qobj, mesolve, spre, spost, liouvillian, lindblad_dissipator
 from typing import Union
 
 
@@ -29,9 +29,9 @@ class VPropHTD(AVirtualPropagator):
 
     def __init__(self,
                  hamiltonian: list,
-                 collapse_operators: list[Qobj] = None,
-                 jumps: list[Qobj] = None,
-                 expect_operators: Union[Qobj, callable] = None,
+                 collapse_operators: list[qb.BackendOperator] = None,
+                 jumps: list[qb.BackendOperator] = None,
+                 expect_operators: Union[qb.BackendOperator, callable] = None,
                  options: dict = None
                  ):
         """
@@ -64,7 +64,7 @@ class VPropHTD(AVirtualPropagator):
         return normalised
 
     @staticmethod
-    def _normalise_collapse_operators(collapse_operators: list[Qobj]):
+    def _normalise_collapse_operators(collapse_operators: list[qb.BackendOperator]):
         normalised = []
         if collapse_operators is None:
             return normalised
@@ -83,7 +83,7 @@ class VPropHTD(AVirtualPropagator):
         return normalised
 
     def jump(self, vconfig):
-        default = 0 * spre(self.hamiltonian[0])
+        default = 0 * qb.left_super(self.hamiltonian[0])
         return sum([-vconfig[i] * list_get(self.jumps, i, default) for i in range(0, len(vconfig))], default)
 
     def propagate(self, virtual_state: VState, t: float, tlist: list = None):
@@ -99,20 +99,24 @@ class VPropHTD(AVirtualPropagator):
                 collapse_operators=self.collapse_operators,
                 jump=jump if jump != 0 * jump else None,
             )
-            rho0 = virtual_state if virtual_state.isoper else virtual_state * virtual_state.dag()
-            result = mesolve(H=generator,
-                             rho0=rho0,
-                             tlist=[virtual_state.time, t] if tlist is None else tlist,
-                             c_ops=[],
-                             e_ops=self.expect_operators,
-                             options=mesolve_options(self.options, force_unnormalized=True))
+            rho0 = virtual_state.density_matrix()
+            result = qb.solve_master_equation(
+                H=generator,
+                rho0=rho0,
+                tlist=[virtual_state.time, t] if tlist is None else tlist,
+                c_ops=[],
+                e_ops=self.expect_operators,
+                options=mesolve_options(self.options, force_unnormalized=True),
+            )
         else:
-            result = mesolve(H=self.hamiltonian,
-                             rho0=virtual_state,
-                             tlist=[virtual_state.time, t] if tlist is None else tlist,
-                             c_ops=self.collapse_operators,
-                             e_ops=self.expect_operators,
-                             options=mesolve_options(self.options, force_unnormalized=False))
+            result = qb.solve_master_equation(
+                H=self.hamiltonian,
+                rho0=virtual_state.qobj,
+                tlist=[virtual_state.time, t] if tlist is None else tlist,
+                c_ops=self.collapse_operators,
+                e_ops=self.expect_operators,
+                options=mesolve_options(self.options, force_unnormalized=False),
+            )
         virtual_state.update(state=result.states[-1], time=t)
         return result
 
@@ -125,7 +129,7 @@ class VPropNHTD(AVirtualPropagator):
     def __init__(self,
                  generator: EvaluatedOperator,
                  jumps: list[EvaluatedOperator] = None,
-                 expect_operators: Union[Qobj, callable] = None,
+                 expect_operators: Union[qb.BackendOperator, callable] = None,
                  options: dict = None
                  ):
         """
@@ -155,15 +159,17 @@ class VPropNHTD(AVirtualPropagator):
             else:
                 hamiltonian.append(term)
 
-        rho0 = virtual_state if virtual_state.isoper else virtual_state * virtual_state.dag()
-        result = mesolve(H=hamiltonian,
-                         rho0=rho0,
-                         tlist=[virtual_state.time, t] if tlist is None else tlist,
-                         e_ops=self.expect_operators,
-                         options=mesolve_options(
-                             self.options,
-                             force_unnormalized=jump is not None and not _is_zero_evalop(jump),
-                         ))
+        rho0 = virtual_state.density_matrix()
+        result = qb.solve_master_equation(
+            H=hamiltonian,
+            rho0=rho0,
+            tlist=[virtual_state.time, t] if tlist is None else tlist,
+            e_ops=self.expect_operators,
+            options=mesolve_options(
+                self.options,
+                force_unnormalized=jump is not None and not _is_zero_evalop(jump),
+            ),
+        )
         virtual_state.update(state=result.states[-1], time=t)
         return result
 
@@ -174,12 +180,12 @@ class VPropTI(AVirtualPropagator):
     """
 
     def __init__(self,
-                 generator: Qobj,
-                 jumps: list[Qobj] = None,
+                 generator: qb.BackendOperator,
+                 jumps: list[qb.BackendOperator] = None,
                  ):
         if not (generator.isoper or generator.issuper):
             raise TypeError("gen must be an operator or superoperator")
-        self.generator = liouvillian(generator) if generator.isoper else generator
+        self.generator = qb.to_superoperator(generator)
         self.jumps = [] if jumps is None else jumps
 
     def jump(self, vconfig):
@@ -203,17 +209,18 @@ def _is_zero_evalop(evop: EvaluatedOperator) -> bool:
     return not evop.variable and evop.constant == 0 * evop.constant
 
 
-def _compile_superoperator_generator(hamiltonian: list, collapse_operators: list[Qobj], jump: Qobj = None):
+def _compile_superoperator_generator(hamiltonian: list, collapse_operators: list[qb.BackendOperator],
+                                     jump: qb.BackendOperator = None):
     compiled = []
     for term in hamiltonian:
         if isinstance(term, list) and len(term) == 2 and hasattr(term[1], "__call__"):
             op = term[0]
             func = term[1]
-            if op.issuper:
+            if qb.is_superoperator(op):
                 compiled.append([op, func])
             else:
-                compiled.append([-1.j * spre(op), func])
-                compiled.append([1.j * spost(op.dag()), _conjugate_coefficient(func)])
+                compiled.append([-1.j * qb.left_super(op), func])
+                compiled.append([1.j * qb.right_super(op.dag()), _conjugate_coefficient(func)])
         else:
             compiled.append(_as_superoperator(term))
 
@@ -222,14 +229,14 @@ def _compile_superoperator_generator(hamiltonian: list, collapse_operators: list
             op = term[0]
             func = term[1]
             if hasattr(op, "isoper") and op.isoper:
-                compiled.append([lindblad_dissipator(op), lambda t, args=None, f=func: abs(f(t, args)) ** 2])
-            elif hasattr(op, "issuper") and op.issuper:
+                compiled.append([qb.lindblad(op), lambda t, args=None, f=func: abs(f(t, args)) ** 2])
+            elif qb.is_superoperator(op):
                 compiled.append([op, func])
         else:
             op = _collapse_term_base(term)
             if hasattr(op, "isoper") and op.isoper:
-                compiled.append(lindblad_dissipator(op))
-            elif hasattr(op, "issuper") and op.issuper:
+                compiled.append(qb.lindblad(op))
+            elif qb.is_superoperator(op):
                 compiled.append(op)
 
     if jump is not None:
@@ -238,10 +245,8 @@ def _compile_superoperator_generator(hamiltonian: list, collapse_operators: list
     return _collapse_qobj_list(compiled)
 
 
-def _as_superoperator(op: Qobj) -> Qobj:
-    if op.issuper:
-        return op
-    return liouvillian(op)
+def _as_superoperator(op: qb.BackendOperator) -> qb.BackendOperator:
+    return qb.to_superoperator(op)
 
 
 def _collapse_qobj_list(terms):
@@ -263,11 +268,11 @@ def _collapse_term_base(term):
 
 def _collapse_term_is_super(term) -> bool:
     base = _collapse_term_base(term)
-    return hasattr(base, "issuper") and base.issuper
+    return qb.is_superoperator(base)
 
 
 def _is_zero_qobj(op) -> bool:
-    if not isinstance(op, Qobj):
+    if not qb.is_backend_object(op):
         return False
     return op == 0 * op
 

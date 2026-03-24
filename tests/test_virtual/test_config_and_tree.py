@@ -3,9 +3,10 @@ from zpgenerator.virtual.configuration import PhysicalDetectorGate
 from zpgenerator.virtual.propagator import VPropHTD, VPropTI
 from zpgenerator.network.detector import TimeBin
 from zpgenerator.time import Func
-from qutip import fock, create, destroy, sprepost, fidelity, liouvillian
+from qutip import Qobj, fock, create, destroy, sprepost, fidelity, liouvillian
 from math import isclose
 from numpy import pi, exp, sqrt, log
+import pytest
 
 
 sigmaX = create(2) + destroy(2)
@@ -68,3 +69,19 @@ def test_virtual_tree_unnormalised_states():
     vtree.propagate(vprop, log(2))
     assert vtree.get_points() == [0.25, 0.5]
     assert vtree.get_states() == [Qobj([[0, 0], [0, 1 / 4]]), Qobj([[1 / 4, 0], [0, 1 / 4]])]
+
+
+def test_virtual_tree_propagates_without_vstate_delegate(monkeypatch):
+    vtree = VTree(initial_state=VState(state=Qobj([[0, 0], [0, 1]]), time=0))
+
+    def fail_propagate(self, propagator, t, tlist=None):
+        raise AssertionError("VTree should not delegate propagation through VState.propagate")
+
+    monkeypatch.setattr(VState, "propagate", fail_propagate, raising=False)
+
+    vprop = VPropTI(generator=liouvillian(0 * sigmaX, c_ops=[destroy(2)]))
+    vtree.propagate(vprop, log(2))
+
+    state = vtree.future[0].virtual_state
+    assert state.time == log(2)
+    assert pytest.approx(state[1, 1], abs=1e-8) == 0.5

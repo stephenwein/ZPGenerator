@@ -2,8 +2,7 @@ from ..time.evaluate import EvaluatedDiracOperator
 from .state import VState
 from .propagator import AVirtualPropagator
 from .branch import MeasurementBranch
-from copy import deepcopy
-from qutip import Qobj
+from .backends import qutip_backend as qb
 from typing import Union
 import numpy as np
 
@@ -26,26 +25,20 @@ class VNode:
     def add_branch(self, branch: MeasurementBranch, pos: int = -1):
         if not self.future:
             for virtual_configuration in branch.virtual_configurations():
-                virtual_state = deepcopy(self.virtual_state)
-                branch_num = len(virtual_state.virtual_configuration)
-                if pos >= branch_num:
-                    virtual_state.virtual_configuration = virtual_state.virtual_configuration + [0] * (pos - branch_num + 1)
-                elif branch_num == 0 and pos == -1:
-                    virtual_state.virtual_configuration = [0]
-                virtual_state.virtual_configuration[pos] = virtual_configuration
+                virtual_state = self.virtual_state.branched(virtual_configuration, pos=pos)
                 self.future.append(VNode(virtual_state=virtual_state))
         else:
             for node in self.future:
                 node.add_branch(branch, pos)
 
-    def apply_operator(self, op: Union[Qobj, EvaluatedDiracOperator]):
+    def apply_operator(self, op: Union[qb.BackendOperator, EvaluatedDiracOperator]):
         if not self.future:
             self.virtual_state.apply_operator(op)
         else:
             for node in self.future:
                 node.apply_operator(op)
 
-    def apply_generator(self, op: Qobj):
+    def apply_generator(self, op: qb.BackendOperator):
         if not self.future:
             self.virtual_state.apply_generator(op)
         else:
@@ -54,14 +47,15 @@ class VNode:
 
     def propagate(self, propagator: AVirtualPropagator, t: float):
         if not self.future:
-            self.virtual_state.propagate(propagator, t)
+            propagator.propagate(self.virtual_state, t)
         else:
             for node in self.future:
                 node.propagate(propagator, t)
 
     def get_states(self, states: list):
         if not self.future:
-            states.append(self.virtual_state)
+            # Export raw backend states; VState stays internal to the virtual runtime.
+            states.append(self.virtual_state.qobj)
         else:
             for node in self.future:
                 node.get_states(states)
@@ -90,8 +84,7 @@ class VNode:
 
     def build_state_tensor(self, tensor: np.array, coo: list):
         if not self.future:
-            state = self.virtual_state if self.virtual_state.isoper else self.virtual_state * self.virtual_state.dag()
-            tensor[tuple(coo)] = state.full()
+            tensor[tuple(coo)] = self.virtual_state.density_matrix().full()
         else:
             for j, node in enumerate(self.future):
                 node.build_state_tensor(tensor, coo + [j])
@@ -117,11 +110,11 @@ class VTree:
             node.add_branch(branch, pos)
             self.branches.append(branch)
 
-    def apply_operator(self, op: Union[Qobj, EvaluatedDiracOperator]):
+    def apply_operator(self, op: Union[qb.BackendOperator, EvaluatedDiracOperator]):
         for node in self.future:
             node.apply_operator(op)
 
-    def apply_generator(self, op: Qobj):
+    def apply_generator(self, op: qb.BackendOperator):
         for node in self.future:
             node.apply_generator(op)
 
@@ -166,7 +159,7 @@ class VTree:
             if tensor.ndim == 0:
                 return self._convert_to_numeric(tensor.item())
             return np.stack([self._convert_to_numeric(elem) for elem in tensor])
-        if isinstance(tensor, Qobj):
-            return tensor.full()
+        if qb.is_backend_object(tensor):
+            return qb.full(tensor)
         else:
             return tensor
