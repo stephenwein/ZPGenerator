@@ -53,7 +53,7 @@ class DistinguishableNoiseSource(GatedSourceComponent):
                       'p1/delay': 0, 'p2/delay': 26,
                       'excitation/p1/area': theta1, 'excitation/p2/area': theta2,
                       'dephase/p1/area': 1, 'dephase/p2/area': 1,
-                      'dephase switch/width': 26, 'dephase switch/delay': 13, 'deph switch/area': 26}
+                      'dephase switch/width': 26, 'dephase switch/delay': 13, 'dephase switch/area': 26}
 
         super().__init__(emitter=emitter, gate=gate, parameters=parameters, name=name)
         self.default_name = '_PCVL'

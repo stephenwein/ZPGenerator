@@ -147,6 +147,8 @@ def test_quality_source_two_level_gaussian():
 
 def test_quality_source_distinguishable_noise():
     source = Source.perceval(emission_probability=0.5)
+    assert 'dephase switch/area' in source.default_parameters
+    assert 'deph switch/area' not in source.default_parameters
     p = ProcessorQuality()
     p.add(0, source)
 
