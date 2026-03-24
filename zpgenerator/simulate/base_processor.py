@@ -1,9 +1,18 @@
 from ..network import AComponent, Component, ADetectorGate, TimeBin, DetectorGate
 from ..system import AElement
-from ..virtual import Generator, VGrove, MeasurementBranch
+from ..virtual import Generator, MeasurementBranch
 from typing import Union, List
-from qutip import Qobj, ptrace, operator_to_vector
-import numpy as np
+from qutip import Qobj
+from ._processor_helpers import (
+    build_simulation_context,
+    prepare_channel_basis,
+)
+from ._processor_runtime import (
+    assert_continue_allowed,
+    build_propagation_times,
+    initialise_or_resume_grove,
+)
+from ._processor_results import ProcessorResultMaps
 
 
 class ProcessorBase:
@@ -23,18 +32,47 @@ class ProcessorBase:
 
         self._grove = None
         self._current_time = None  # Note that current_time = None -> simulation will restart from initial conditions
-        self._branches = []
+        self._branch_order = []
         self._binned_detectors = {}
+        self._simulation_context = None
 
-        self._probabilities = {}
-        self._states = {}
-        self._channels = {}
+        self._result_maps = ProcessorResultMaps()
 
         self._initial_state = None
         self._initial_time = None
         self._final_time = None
 
-        self._contains_unnormalised_detector = False
+    @property
+    def _probabilities(self):
+        return self._result_maps.probabilities
+
+    @_probabilities.setter
+    def _probabilities(self, value: dict):
+        self._result_maps.probabilities = value
+
+    @property
+    def _states(self):
+        return self._result_maps.states
+
+    @_states.setter
+    def _states(self, value: dict):
+        self._result_maps.states = value
+
+    @property
+    def _channels(self):
+        return self._result_maps.channels
+
+    @_channels.setter
+    def _channels(self, value: dict):
+        self._result_maps.channels = value
+
+    @property
+    def _contains_unnormalised_detector(self):
+        return self._result_maps.contains_unnormalised_detector
+
+    @_contains_unnormalised_detector.setter
+    def _contains_unnormalised_detector(self, value: bool):
+        self._result_maps.contains_unnormalised_detector = value
 
     def __floordiv__(self, other):
         if isinstance(other, tuple):
@@ -51,9 +89,10 @@ class ProcessorBase:
         return self
 
     def _check_simulate(self):
-        assert self.component.dim > 1, "Processor must contain at least one quantum system."
-        assert any(port.is_monitored for port in self.component.output.ports), \
-            "Processor must contain at least one detector."
+        if self.component.dim <= 1:
+            raise ValueError("Processor must contain at least one quantum system.")
+        if not any(port.is_monitored for port in self.component.output.ports):
+            raise ValueError("Processor must contain at least one detector.")
 
     @property
     def modes(self):
@@ -61,6 +100,7 @@ class ProcessorBase:
 
     def add(self, position: int, element: Union[AElement, ADetectorGate],
             parameters: dict = None, name: str = None, bin_name: str = None):
+        self._reset_grove()
         self.component.add(position, element, parameters, name, bin_name)
 
     @property
@@ -69,7 +109,7 @@ class ProcessorBase:
 
     @initial_state.setter
     def initial_state(self, state: Union[Qobj, None]):
-        self._current_time = None
+        self._reset_grove()
         if state:
             assert state.dims[0] == self.component.subdims, \
                 "Input state dimension must match the dimension of all quantum systems contained by the processor"
@@ -81,7 +121,7 @@ class ProcessorBase:
 
     @initial_time.setter
     def initial_time(self, t0: Union[float, int, None]):
-        self._current_time = None
+        self._reset_grove()
         self._initial_time = t0
 
     @property
@@ -90,6 +130,7 @@ class ProcessorBase:
 
     @final_time.setter
     def final_time(self, t: Union[float, int]):
+        self._reset_grove()
         self._final_time = t
 
     def copy_conditions(self, processor: 'ProcessorBase'):
@@ -115,22 +156,22 @@ class ProcessorBase:
 
     @precision.setter
     def precision(self, precision):
+        self._reset_grove()
         self._precision = precision
 
     def _measurement_branches(self, parameters: dict = None, bin_list: list = None):
-        if not self._branches:
-            binned_detectors = self.component.output.binned_detectors
-            bin_keys = list(binned_detectors.keys())
-            if bin_list is not None:
-                assert all(k < len(bin_keys) if isinstance(k, int) else k in bin_keys for k in bin_list), \
-                    "One or more bins does not exist."
-                binned_detectors = {k: binned_detectors.get(bin_keys[k] if isinstance(k, int) else k) for k in bin_list}
-            self.binned_detectors = binned_detectors
-            self._branches = [MeasurementBranch(time_bin, parameters, name)
-                              for name, time_bin in self.binned_detectors.items()]
-            if not self._branches:  # we simulate the natural evolution (without any measurement)
-                self._branches = [MeasurementBranch(time_bins=[TimeBin(detector=DetectorGate(resolution=None))])]
-        return self._branches, self.binned_detectors
+        binned_detectors = self.component.output.binned_detectors
+        bin_keys = list(binned_detectors.keys())
+        if bin_list is not None:
+            if not all(k < len(bin_keys) if isinstance(k, int) else k in bin_keys for k in bin_list):
+                raise ValueError("One or more bins does not exist.")
+            binned_detectors = {k: binned_detectors.get(bin_keys[k] if isinstance(k, int) else k) for k in bin_list}
+        self.binned_detectors = binned_detectors
+        branches = [MeasurementBranch(time_bin, parameters, name)
+                    for name, time_bin in self.binned_detectors.items()]
+        if not branches:  # we simulate the natural evolution (without any measurement)
+            branches = [MeasurementBranch(time_bins=[TimeBin(detector=DetectorGate(resolution=None))])]
+        return branches, self.binned_detectors
 
     def _get_initial_time(self, times: list):
         if self.initial_time is not None:
@@ -147,26 +188,30 @@ class ProcessorBase:
         elif times:
             final_time = times[-1]
         else:
-            assert False, "Must specify a final time."  # could be replaced with a default convergence to steady state
+            raise ValueError("Must specify a final time.")  # could be replaced with a default convergence to steady state
         return final_time
 
-    def _check_if_continue(self, continue_simulation: bool):
+    def _check_if_continue(self, continue_simulation: bool, simulation_context: dict):
         if continue_simulation:
-            assert self._grove, "No simulation to continue."
-            assert self._current_time is not None, "No current time."
+            assert_continue_allowed(
+                grove=self._grove,
+                current_time=self._current_time,
+                existing_context=self._simulation_context,
+                simulation_context=simulation_context,
+            )
             return True
         else:
             self._reset_grove()
+            self._simulation_context = simulation_context
             return False
 
     def _reset_grove(self):
         self._current_time = None
-        self._grove = []
-        self._branches = []
+        self._grove = None
+        self._branch_order = []
         self.binned_detectors = {}
-        self._probabilities = {}
-        self._states = {}
-        self._channels = {}
+        self._result_maps.reset()
+        self._simulation_context = None
 
     def _get_states(self, basis: List[Qobj]):
         return [self.initial_state] if basis is None else basis  # a set of one or more initial states to propagate
@@ -176,14 +221,14 @@ class ProcessorBase:
         branches, binned_detectors = self._measurement_branches(parameters, bin_list)
         branch_times = sorted([branch.start_time for branch in branches])
 
-        if self._current_time is None:  # initialize the tree(s)
-            grove = VGrove(initial_time=initial_time, states=self._get_states(basis))
-            branch_order = grove.initialize(time=initial_time, branches=branches)
-            self._current_time = initial_time
-
-        else:  # we are continuing a previous simulation
-            grove = self._grove
-            branch_order = self._branch_order
+        self._current_time, grove, branch_order = initialise_or_resume_grove(
+            current_time=self._current_time,
+            grove=self._grove,
+            branch_order=self._branch_order,
+            initial_time=initial_time,
+            basis_states=self._get_states(basis),
+            branches=branches,
+        )
         return branch_times, branches, branch_order, binned_detectors, grove
 
     def _simulate_grove(self,
@@ -192,14 +237,17 @@ class ProcessorBase:
                         basis: List[Qobj] = None,
                         options: dict = None,
                         continue_simulation: bool = False):
+        parameters = self.component.set_parameters(parameters)
+        simulation_context = build_simulation_context(parameters=parameters, bin_list=bin_list, basis=basis)
+
         times = self.component.times(parameters)  # determine simulation stop times
         initial_time = self._get_initial_time(times)
         final_time = self._get_final_time(times)
 
-        self._check_if_continue(continue_simulation)
+        self._check_if_continue(continue_simulation, simulation_context=simulation_context)
         branch_times, branches, branch_order, binned_detectors, grove = \
-            self._initialize_grove(initial_time, self.component.set_parameters(parameters), bin_list, basis)
-        times = [self._current_time] + [t for t in times if self._current_time < t < final_time] + [final_time]
+            self._initialize_grove(initial_time, parameters, bin_list, basis)
+        times = build_propagation_times(current_time=self._current_time, component_times=times, final_time=final_time)
 
         generator = Generator(self.component, binned_detectors=binned_detectors, precision=self.precision)
 
@@ -239,6 +287,21 @@ class ProcessorBase:
         self._simulate_grove(parameters=parameters, basis=basis, options=options)
         return list(map(list, zip(*[tree.get_states() for tree in self._grove])))
 
+    @staticmethod
+    def _normalise_channel_basis_if_needed(point_rank: int, basis: List[Qobj] = None):
+        return prepare_channel_basis(basis) if point_rank == 2 else basis
+
+    def _validate_simulation_request(self, point_rank: int):
+        if not self.component.is_emitter:
+            raise ValueError("At least one component must be a quantum emitter.")
+        if not any(port.is_monitored for port in self.component.output.ports):
+            raise ValueError("Processor must contain at least one detector.")
+
+    def _extract_tensor_results(self, point_rank: int, dims: List[int] = None, select: List[int] = None,
+                                basis: List[Qobj] = None):
+        tensors = self._grove.build_tensors(point_rank, self.precision)
+        return self._result_maps.ingest(point_rank=point_rank, tensors=tensors, dims=dims, select=select, basis=basis)
+
     def simulate(self,
                  parameters: dict = None,
                  point_rank: int = 0,
@@ -258,50 +321,14 @@ class ProcessorBase:
         :param options: options for qutip mesolve.
         :param reset: whether to continue simulation from the current time or reset from the beginning
         """
-        assert self.component.is_emitter, "At least one component must be a quantum emitter."
-
-        # Take outer product of orthonormal set to build unit elements of the density matrix
-        if point_rank == 2:
-            assert basis, "Please provide a state basis for a subspace to construct the effective channel"
-            basis = [psi1 * psi2.dag() for psi2 in basis for psi1 in basis]
+        self._validate_simulation_request(point_rank=point_rank)
+        basis = self._normalise_channel_basis_if_needed(point_rank=point_rank, basis=basis)
 
         # simulate the virtual tree
         self._simulate_grove(parameters=parameters, bin_list=bin_list, basis=basis, options=options,
                              continue_simulation=not reset)
 
-        tensors = self._grove.build_tensors(point_rank, self.precision)
-        for tensor in tensors:
-            self._contains_unnormalised_detector = tensor.invert()
-
-        results = [tensor.extract_results(dims=dims, select=select) for tensor in tensors]
-
-        if point_rank == 0:
-            self._probabilities.update(results[0])
-
-        elif point_rank == 1:
-            self._states.update(results[0])
-            self._probabilities.update({k: v.tr() for k, v in results[0].items()})
-
-        elif point_rank == 2:
-
-            dims = basis[0].dims if dims is None else [dims, dims]
-            new_dims = dims
-
-            for k in results[0].keys():  # looping over all measurement outcomes
-                ch_inpt = []
-                for states in results:  # for each set of states in conditional states simulated
-                    state = states[k]  # get conditional state for measurement outcome
-                    state.dims = dims  # apply desired sub-dimensions
-                    if select:
-                        state = ptrace(state, select)  # trace out desired subspaces
-                    new_dims = state.dims
-                    ch_inpt.append(operator_to_vector(state).full())
-                ch_inpt = np.hstack(ch_inpt)  # rearrange into matrix
-                channel = Qobj(ch_inpt, dims=[new_dims, new_dims], superrep='super')  # make into super-operator
-                self._channels.update({k: channel})
-
-        else:
-            return NotImplemented
+        self._extract_tensor_results(point_rank=point_rank, dims=dims, select=select, basis=basis)
 
     def _order_bins(self, distribution: dict):
         return {tuple(k[i] for i in self._branch_order): v for k, v in distribution.items()}
