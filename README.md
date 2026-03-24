@@ -7,10 +7,12 @@ simulations demand a detailed understanding of the underlying physics and, using
 of time to code from scratch and are also computationally expensive to run. ZPGenerator aims to make these physics 
 simulations more accessible and fast without the hefty knowledge overhead, allowing for quick prototyping of photonic 
 experiments.
-1) **Photonic Circuits** - quantum enthusiast, simulate photonic experiments using a catalogue components with pre-defined physics.
-2) **Pulsed Sources** - quantum engineer, characterise and optimise catalogue source components by modifying their operation parameters.
-3) **Custom Components** - quantum physics researcher, build custom components by combining catalogue components together.
-4) **Custom Physics** - quantum dynamics expert, construct custom components from scratch, defined by a quantum master equation.
+
+ZPGenerator is designed for four common workflows:
+1. **Photonic Circuits**: simulate photonic experiments using catalogue components with pre-defined physics.
+2. **Pulsed Sources**: characterise and optimise source components by modifying their operating parameters.
+3. **Custom Components**: build new components by composing catalogue primitives.
+4. **Custom Physics**: construct components directly from custom quantum dynamics.
 
 # Key Features
 
@@ -31,7 +33,7 @@ ZPGenerator requires:
 
 ## GitHub
 ```bash
-git clone https://github.com/stephenwein/ZPGenerator.git
+git clone https://github.com/Quandela/ZPGenerator.git
 cd ZPGenerator
 python -m pip install --upgrade pip
 ```
@@ -43,9 +45,6 @@ Or for developers:
 ```bash
 python -m pip install -e .
 ```
-
-ZPGenerator currently uses QuTiP as its numerical backend. High-level simulation methods such as
-`conditional_states()` and `conditional_channels()` therefore return QuTiP `Qobj` results.
 
 ## Package Use
 Most simulations can be accomplished using just five classes of the repository.
@@ -64,3 +63,11 @@ To build the documentation locally:
 python -m pip install -r docs/requirements.txt
 sphinx-build -b html docs/source docs/build/html
 ```
+
+To run the unit tests locally:
+```bash
+pytest -q
+```
+
+Some advanced documentation notebooks, such as the Perceval conversion examples and the RUS gate tutorial,
+also require `perceval-quandela` as an optional dependency.

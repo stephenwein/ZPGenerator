@@ -8,6 +8,7 @@ from zpgenerator.simulate._processor_helpers import (
     invert_tensors,
     prepare_channel_basis,
 )
+from zpgenerator.time.parameters import Parameters
 
 
 def test_build_simulation_context_normalises_nested_values():
@@ -15,6 +16,14 @@ def test_build_simulation_context_normalises_nested_values():
         "alpha": np.array([1, 2]),
         "nested": {"beta": [3, 4]},
     }
+    context = build_simulation_context(parameters=parameters, bin_list=["B0"], basis=[Qobj([[1]])])
+    assert context["bin_list"] == ("B0",)
+    assert context["parameters"][0][0] == "alpha"
+    assert context["parameters"][0][1][0] == "ndarray"
+
+
+def test_build_simulation_context_accepts_parameters_objects():
+    parameters = Parameters(parameters={"alpha": np.array([1, 2])})
     context = build_simulation_context(parameters=parameters, bin_list=["B0"], basis=[Qobj([[1]])])
     assert context["bin_list"] == ("B0",)
     assert context["parameters"][0][0] == "alpha"

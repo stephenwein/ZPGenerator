@@ -2,6 +2,7 @@ from typing import List
 
 import numpy as np
 from qutip import Qobj, operator_to_vector, ptrace
+from ..time.parameters import Parameters
 
 
 def normalise_context_value(value):
@@ -17,6 +18,8 @@ def normalise_context_value(value):
 def build_simulation_context(parameters: dict = None, bin_list: list = None, basis: List[Qobj] = None):
     parameter_context = None
     if parameters is not None:
+        if isinstance(parameters, Parameters):
+            parameters = parameters.dict
         parameter_context = tuple(sorted((k, normalise_context_value(v)) for k, v in parameters.items()))
 
     bin_context = None if bin_list is None else tuple(bin_list)
