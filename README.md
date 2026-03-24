@@ -31,16 +31,21 @@ ZPGenerator requires:
 
 ## GitHub
 ```bash
-git clone https://github.com/Quandela/ZPGenerator.git
+git clone https://github.com/stephenwein/ZPGenerator.git
+cd ZPGenerator
+python -m pip install --upgrade pip
 ```
 then to install ZPGenerator:
 ```bash
-pip install .
+python -m pip install .
 ```
 Or for developers:
 ```bash
-pip install -e .
+python -m pip install -e .
 ```
+
+ZPGenerator currently uses QuTiP as its numerical backend. High-level simulation methods such as
+`conditional_states()` and `conditional_channels()` therefore return QuTiP `Qobj` results.
 
 ## Package Use
 Most simulations can be accomplished using just five classes of the repository.
@@ -53,3 +58,9 @@ Most simulations can be accomplished using just five classes of the repository.
 # Documentation
 
 To learn how to build and simulate photonic experiments, there are a set of tutorials available in the [Documentation](https://quandela.github.io/ZPGenerator).
+
+To build the documentation locally:
+```bash
+python -m pip install -r docs/requirements.txt
+sphinx-build -b html docs/source docs/build/html
+```
