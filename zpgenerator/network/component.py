@@ -3,6 +3,7 @@ from ..time.evaluate.cache import DefaultCache
 from ..system import AElement, ScattererBase, AScatteringMatrix
 from .element import ElementCollection
 from .detector import ADetectorGate
+from .mode_mapping import normalize_mode_position, is_mode_position_token
 from .port import InputLayer, OutputLayer, OutputPort, InputPort
 from typing import Union, List
 from abc import abstractmethod
@@ -10,7 +11,6 @@ from copy import deepcopy
 from qutip import Qobj
 from frozendict import frozendict
 from itertools import chain
-from numbers import Integral
 
 
 class AComponent(ElementCollection):
@@ -145,14 +145,7 @@ class Component(AComponent):
                     if i < self.unmasked_position(position)].count(False)
 
     def get_port_number(self, position: Union[str, int]) -> int:
-        if isinstance(position, bool):
-            raise TypeError("Position must be an integer index or named port string.")
-        if isinstance(position, Integral):
-            position = int(position)
-        elif not isinstance(position, str):
-            raise TypeError("Position must be an integer index or named port string.")
-        if isinstance(position, int) and position < 0:
-            raise ValueError("Position must be non-negative.")
+        position = normalize_mode_position(position)
 
         if isinstance(position, str):
             if not self.elements:
@@ -185,12 +178,10 @@ class Component(AComponent):
     @staticmethod
     def _resolve_add_call(position, element):
         if element is None:
-            if isinstance(position, (Integral, str)) and not isinstance(position, bool):
+            if is_mode_position_token(position):
                 raise ValueError("Please specify an element to add")
             return 0, position
-        if not (isinstance(position, (Integral, str)) and not isinstance(position, bool)):
-            raise TypeError("Position must be an integer index or named port string.")
-        return position, element
+        return normalize_mode_position(position), element
 
     @staticmethod
     def _coerce_element(element):

@@ -271,3 +271,20 @@ def test_processor_add_detector_requires_existing_modes():
     p = Processor()
     with pytest.raises(ValueError, match="before adding at least one element"):
         p.add(0, DetectorGate(resolution=1))
+
+
+def test_processor_add_supports_tuple_mode_mapping():
+    p = Processor()
+    p.add(0, BeamSplitter(name='BS'))
+    p.add((0, 1), DetectorGate(resolution=1), bin_name='D')
+
+    assert p.bins == 1
+    assert p.bin_labels == ['D']
+
+
+def test_processor_add_rejects_invalid_mode_mapping_type():
+    p = Processor()
+    p.add(0, BeamSplitter(name='BS'))
+
+    with pytest.raises(TypeError, match="integer index or named port string"):
+        p.add({0: 1}, DetectorGate(resolution=1))
