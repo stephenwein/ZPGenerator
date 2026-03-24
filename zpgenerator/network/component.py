@@ -1,6 +1,7 @@
 from ..time import TimeFunctionCollection, merge_times, EvaluatedQuadruple
 from ..time.evaluate.cache import DefaultCache
 from ..system import AElement, ScattererBase, AScatteringMatrix
+from .composition_request import CompositionRequest
 from .connection_plan import ConnectionAction, ConnectionPlan
 from .element import ElementCollection
 from .detector import ADetectorGate
@@ -204,30 +205,70 @@ class Component(AComponent):
             name = None
         return element, parameters, name
 
+    @classmethod
+    def _build_composition_request(cls,
+                                   position,
+                                   element,
+                                   parameters: dict = None,
+                                   name: str = None,
+                                   bin_name: str = None) -> CompositionRequest | None:
+        position, element = cls._resolve_add_call(position, element)
+        if element is None:
+            return None
+        return CompositionRequest(
+            position=position,
+            element=element,
+            parameters=parameters,
+            name=name,
+            bin_name=bin_name,
+        )
+
+    def _normalize_composition_request(self, request: CompositionRequest) -> CompositionRequest:
+        element = self._coerce_element(request.element)
+        position = self.get_port_number(request.position)
+        parameters = request.parameters
+        name = request.name
+
+        if isinstance(element, AComponent):
+            element, parameters, name = self._prepare_component_for_binning(
+                element,
+                parameters,
+                name,
+                request.bin_name,
+            )
+
+        return CompositionRequest(
+            position=position,
+            element=element,
+            parameters=parameters,
+            name=name,
+            bin_name=request.bin_name,
+        )
+
     def add(self,
             position: Union[int, str, ComponentInputTypes],
             element: ComponentInputTypes = None,
             parameters: dict = None, name: str = None, bin_name: str = None):
-        position, element = self._resolve_add_call(position, element)
-        if element is None:
+        request = self._build_composition_request(position, element, parameters=parameters, name=name, bin_name=bin_name)
+        if request is None:
             return
-        if isinstance(element, list):
-            if not element:
+        if isinstance(request.element, list):
+            if not request.element:
                 return
-            for elm in element:
-                self.add(position, elm, parameters=parameters, name=name, bin_name=bin_name)
+            for elm in request.element:
+                self.add(request.position, elm,
+                         parameters=request.parameters,
+                         name=request.name,
+                         bin_name=request.bin_name)
             return
 
-        element = self._coerce_element(element)
-        position = self.get_port_number(position)
+        request = self._normalize_composition_request(request)
 
-        if isinstance(element, AElement):
-            if isinstance(element, AComponent):
-                element, parameters, name = self._prepare_component_for_binning(element, parameters, name, bin_name)
-            self._add_element(element, position, parameters, name)
-        elif isinstance(element, ADetectorGate):
-            self._add_detector(element, position, parameters, name, bin_name)
-        elif element is not None:
+        if isinstance(request.element, AElement):
+            self._add_element(request.element, request.position, request.parameters, request.name)
+        elif isinstance(request.element, ADetectorGate):
+            self._add_detector(request.element, request.position, request.parameters, request.name, request.bin_name)
+        elif request.element is not None:
             raise TypeError("Can only add AElement or ADetectorGate to a Component")
 
     def _add_element(self, element: AElement, position: int = None, parameters: dict = None, name: str = None):
