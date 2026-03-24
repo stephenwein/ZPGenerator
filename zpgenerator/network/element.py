@@ -5,6 +5,7 @@ from typing import List, Union
 from math import prod
 from qutip import tensor, Qobj
 from itertools import chain
+import warnings
 
 
 class ElementCollection(AElement, TimeOperatorCollection):
@@ -29,8 +30,8 @@ class ElementCollection(AElement, TimeOperatorCollection):
     def _check_objects(self):
         super(TimeFunctionCollection, self)._check_objects()
         if self._objects:
-            assert all(element.modes == self._objects[0].modes for element in self._objects), \
-                "All elements must share the same number of modes"
+            if not all(element.modes == self._objects[0].modes for element in self._objects):
+                raise ValueError("All elements must share the same number of modes")
 
     def _check_add(self, element, parameters: dict = None, name: str = None):
         element = super()._check_add(element, parameters, name)
@@ -88,8 +89,11 @@ class ElementCollection(AElement, TimeOperatorCollection):
             initial_times = [system.initial_time for system in self._objects if hasattr(system, 'initial_time') and
                              system.initial_time is not None]
             if not all(times == initial_times[0] for times in initial_times):
-                print("Warning: initial times for one or more elements disagree, "
-                      "proceeding by taking the earliest time.")
+                warnings.warn(
+                    "Initial times for one or more elements disagree, proceeding by taking the earliest time.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
             return min(initial_times) if initial_times else None
 
     @initial_time.setter

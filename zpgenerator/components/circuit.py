@@ -34,7 +34,7 @@ class Circuit(Component):
 
     @classmethod
     def ps(cls, phase: float = None, parameters: dict = None, name: str = None):
-        parameters = parinit({'phase': phase}, parameters) if phase is not None else None
+        parameters = parinit({'phase': phase}, parameters) if phase is not None else parameters
         component = Component(PhaseShifter(parameters=parameters), name=name)
         component.default_name = '_PS'
         return component
@@ -66,7 +66,8 @@ class Circuit(Component):
 
     @classmethod
     def from_perceval(cls, circuit):
-        assert hasattr(circuit, 'compute_unitary'), "Circuit object must have a 'compute_unitary' method. "
+        if not hasattr(circuit, 'compute_unitary'):
+            raise TypeError("Circuit object must have a 'compute_unitary' method.")
         component = Component(ScattererBase(Qobj(circuit.compute_unitary())))
         component.default_name = '_PCVL'
         return component

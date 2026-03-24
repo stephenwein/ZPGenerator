@@ -29,17 +29,18 @@ class MeasurementBranch:
         elif method == 'Fourier' or method == 'Threshold':
             self.virtual_detector = FourierDetectorGate(resolution=self._first_bin.detector.resolution)
         else:
-            assert False, "Detector method not implemented"
+            raise NotImplementedError("Detector method not implemented")
 
         intervals = [time_bin.detector.interval(self.parameters) for time_bin in self.time_bins]
         self.interval = [min([interval[0] for interval in intervals]), max([interval[1] for interval in intervals])]
 
     def _check_detectors(self):
         self._first_bin = self.time_bins[0]
-        assert all(type(time_bin.detector) == type(self._first_bin.detector) for time_bin in self.time_bins), \
-            "Detectors binned together must be of the same type."
-        assert all(time_bin.detector.resolution == self._first_bin.detector.resolution
-                   for time_bin in self.time_bins), "Detectors binned together must share the same detector resolution"
+        if not all(type(time_bin.detector) == type(self._first_bin.detector) for time_bin in self.time_bins):
+            raise ValueError("Detectors binned together must be of the same type.")
+        if not all(time_bin.detector.resolution == self._first_bin.detector.resolution
+                   for time_bin in self.time_bins):
+            raise ValueError("Detectors binned together must share the same detector resolution")
 
     @property
     def start_time(self):

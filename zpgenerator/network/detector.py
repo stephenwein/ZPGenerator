@@ -143,10 +143,10 @@ class TimeBinArray(ParameterizedCollection):
         self.time_bin_intervals(parameters)
         binned_detectors = self.binned_detectors
         for time_bins in binned_detectors.values():
-            assert all(type(time_bin.detector) == type(time_bins[0].detector) for time_bin in time_bins), \
-                "Detectors binned together must be of the same type."
-            assert all(time_bin.detector.resolution == time_bins[0].detector.resolution for time_bin in time_bins), \
-                "Detectors binned together must share the same detector resolution"
+            if not all(type(time_bin.detector) == type(time_bins[0].detector) for time_bin in time_bins):
+                raise ValueError("Detectors binned together must be of the same type.")
+            if not all(time_bin.detector.resolution == time_bins[0].detector.resolution for time_bin in time_bins):
+                raise ValueError("Detectors binned together must share the same detector resolution")
         self._check_keys()
 
     def add(self, detector, parameters: dict = None, name: str = None, bin_name: str = None):
@@ -184,8 +184,8 @@ class TimeBinArray(ParameterizedCollection):
                 for interval in detector.time_bin_intervals(parameters=parameters):
                     time_bin_intervals.append(interval)
         if time_bin_intervals:
-            assert len(time_bin_intervals) == len(merge_intervals(time_bin_intervals, merge_adjacent=False)), \
-                "Time bins cannot overlap."
+            if len(time_bin_intervals) != len(merge_intervals(time_bin_intervals, merge_adjacent=False)):
+                raise ValueError("Time bins cannot overlap.")
         return time_bin_intervals
 
     @property

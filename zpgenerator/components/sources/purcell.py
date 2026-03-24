@@ -38,6 +38,8 @@ class PurcellSource(GatedSourceComponent):
 
         super().__init__(emitter=emitter, gate=gate, efficiency=efficiency, name=name,
                          parameters=emitter.default_parameters | (parameters if parameters else {}))
+        self.output.ports[0].close()
+        self.mask()
         self.default_name = '_Purcell'
 
     @staticmethod

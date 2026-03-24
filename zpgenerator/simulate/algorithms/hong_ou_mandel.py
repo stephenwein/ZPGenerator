@@ -26,7 +26,8 @@ def estimate_hom_visibility(source: AComponent, port: int,
 
     # estimate the norm
     norm = probs[1, 0] + probs[0, 1]
-    assert norm != 0, "No light detected, normalization is 0"
+    if norm == 0:
+        raise ValueError("No light detected, normalization is 0.")
 
     return 1 - 8 * probs[1, 1] / (norm ** 2)
 
@@ -38,7 +39,8 @@ def estimate_hom_visibility_with_coherence(source: AComponent, port: int, pseudo
 
     # estimate the norm
     norm = probs1[1, 0] + probs1[0, 1]
-    assert norm != 0, "No light detected, normalization is 0"
+    if norm == 0:
+        raise ValueError("No light detected, normalization is 0.")
 
     # lossy limit formulas
     c1 = 2 * abs(abs(probs1[1, 0] - probs2[1, 0])) / norm

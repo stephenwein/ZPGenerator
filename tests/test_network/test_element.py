@@ -4,6 +4,7 @@ from zpgenerator.time import Operator, TimeOperator, CompositeTimeOperator
 from qutip import Qobj, qeye, destroy, create, liouvillian, tensor, fock
 from numpy import sin, cos, pi
 from tests_assertions import assert_empty_qobj
+import pytest
 
 
 def test_comp_coll_init_empty():
@@ -140,7 +141,8 @@ def test_comp_coll_cascade_emit_scatter_emit():
     comp.add(emitter1)
 
     assert comp.initial_state == tensor(fock(2, 0), fock(2, 1))
-    assert comp.initial_time == 0
+    with pytest.warns(RuntimeWarning, match="Initial times for one or more elements disagree"):
+        assert comp.initial_time == 0
     emitter1.initial_time = 1
     assert comp.initial_time == 1
     assert comp.evaluate_quadruple(0).hamiltonian.evaluate(0) == hamiltonian_test

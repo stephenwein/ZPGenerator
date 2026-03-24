@@ -8,6 +8,7 @@ from ..system import AElement
 from ..time import Lifetime
 from typing import Union
 from numpy import real
+import warnings
 
 
 class ProcessorQuality(ProcessorBase):
@@ -27,7 +28,11 @@ class ProcessorQuality(ProcessorBase):
     def _name_to_port(self, port):
         port = 0 if port is None else self.component.get_port_number(port)
         name = str(port)
-        assert self.component.output.ports[self.component.unmasked_position(port)].is_open, "Can only compute the quality of open ports"
+        unmasked_port = self.component.unmasked_position(port)
+        if unmasked_port >= len(self.component.output.ports):
+            raise ValueError("Can only compute the quality of open ports.")
+        if not self.component.output.ports[unmasked_port].is_open:
+            raise ValueError("Can only compute the quality of open ports.")
         return name, port
 
     def _update_quality(self, quality: dict, name: str):
@@ -65,9 +70,15 @@ class ProcessorQuality(ProcessorBase):
         if mu > 10 ** -self.precision:
             quality.update({labels[3]: distribution.g2()})
         else:
-            print("Warning: no light detected in mode " + ('' if self.modes == 1 else str(port)) + ', ' +
-                  ('g2' if self.modes == 1 else 'g2 ' + str(port)) +
-                  " cannot be defined.")
+            warnings.warn(
+                "No light detected in mode "
+                + ('' if self.modes == 1 else str(port))
+                + ', '
+                + ('g2' if self.modes == 1 else 'g2 ' + str(port))
+                + " cannot be defined.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
 
         self._update_quality(quality, name)
 
@@ -145,9 +156,10 @@ class ProcessorQuality(ProcessorBase):
         """
         name, port = self._name_to_port(port)
 
-        assert not (update_mu is True and update_g2 is False), "Cannot update mu without updating g2, use mu() instead."
-        assert all(u is False for u in [update_mu, update_g2, update_M, update_coh]) if phase is not None else True, \
-            "Cannot update other figures of merit when computing VHOM for a specified phase."
+        if update_mu is True and update_g2 is False:
+            raise ValueError("Cannot update mu without updating g2, use mu() instead.")
+        if phase is not None and any(u is True for u in [update_mu, update_g2, update_M, update_coh]):
+            raise ValueError("Cannot update other figures of merit when computing VHOM for a specified phase.")
 
         pseudo_limit = self._estimate_pseudo_limit(port, parameters) if pseudo_limit is None else pseudo_limit
 
@@ -255,4 +267,3 @@ class ProcessorQuality(ProcessorBase):
                                          pseudo_limit, lo_resolution, lo_fluctuations)
         self.quality.update({name: {'wigner': wigner}})
         return wigner
-

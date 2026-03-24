@@ -4,6 +4,7 @@ from zpgenerator.network import Component
 from zpgenerator.dynamic import Pulse
 from math import isclose
 from numpy import pi, sin, sqrt
+import pytest
 
 
 def assert_quality(source, expected: dict, port='0'):
@@ -147,6 +148,8 @@ def test_quality_source_two_level_gaussian():
 
 def test_quality_source_distinguishable_noise():
     source = Source.perceval(emission_probability=0.5)
+    assert 'dephase switch/area' in source.default_parameters
+    assert 'deph switch/area' not in source.default_parameters
     p = ProcessorQuality()
     p.add(0, source)
 
@@ -198,7 +201,8 @@ def test_multimode_source():
     p = ProcessorQuality() // source
     pn0 = p.photon_statistics(0)
     assert isclose(pn0[1], 1, abs_tol=1e-5)
-    pn1 = p.photon_statistics(1)
+    with pytest.warns(RuntimeWarning, match="No light detected"):
+        pn1 = p.photon_statistics(1)
     assert isclose(pn1[1], 0, abs_tol=1e-5)
 
 
@@ -213,3 +217,29 @@ def test_detuned_pulse():
     pn0 = source.photon_statistics(parameters={'detuning': -0.42, 'resonance': -0.42})
     pn1 = source.photon_statistics()
     assert all(isclose(pn0[i], pn1[i], abs_tol=1e-5) for i in range(3))
+
+
+def test_quality_warns_when_g2_is_undefined_for_dark_source():
+    p = ProcessorQuality()
+    p.add(0, Source.perceval(emission_probability=0))
+
+    with pytest.warns(RuntimeWarning, match="No light detected"):
+        assert p.g2() is None
+
+
+def test_quality_raises_for_closed_output_port():
+    p = ProcessorQuality() // Source.exciton()
+    p.component.output.ports[1].close()
+
+    with pytest.raises(ValueError, match="open ports"):
+        p.photon_statistics(1)
+
+
+def test_hom_rejects_inconsistent_quality_update_flags():
+    p = ProcessorQuality() // Source.two_level()
+
+    with pytest.raises(ValueError, match="Cannot update mu without updating g2"):
+        p.hom(update_mu=True, update_g2=False)
+
+    with pytest.raises(ValueError, match="Cannot update other figures of merit"):
+        p.hom(phase=0.1, update_M=True)

@@ -111,8 +111,10 @@ class ProcessorBase:
     def initial_state(self, state: Union[Qobj, None]):
         self._reset_grove()
         if state:
-            assert state.dims[0] == self.component.subdims, \
-                "Input state dimension must match the dimension of all quantum systems contained by the processor"
+            if state.dims[0] != self.component.subdims:
+                raise ValueError(
+                    "Input state dimension must match the dimension of all quantum systems contained by the processor"
+                )
         self._initial_state = state
 
     @property

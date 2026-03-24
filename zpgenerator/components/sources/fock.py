@@ -28,13 +28,14 @@ class FockSource(GatedSourceComponent):
 
         parameters = parinit({'delay': 0., 'decay': 1.}, parameters)
 
-        if gate is None and shape is None:
-            def window(args: dict):
-                return [args['delay'], args['delay'] + 15 / args['decay']]
+        if gate is None:
+            if shape is None:
+                def window(args: dict):
+                    return [args['delay'], args['delay'] + 15 / args['decay']]
 
-            gate = TimeInterval(interval=window, parameters=parameters)
-        else:
-            gate = emitter.system.interval
+                gate = TimeInterval(interval=window, parameters=parameters)
+            else:
+                gate = emitter.system.interval
 
         super().__init__(emitter=emitter, gate=gate, efficiency=efficiency, parameters=parameters, name=name)
         self.default_name = '_|' + (str(state) if isinstance(state, int) else 'psi') + '>'

@@ -22,12 +22,9 @@ class Source(SourceComponent):
                 purcell_factor: float = None, regime: float = None, timescale: float = None,
                 parameters: dict = None, name: str = None):
         efficiency = parinit({'efficiency': efficiency}, parameters)['efficiency']
-        source = PurcellSource(pulse=pulse, gate=gate, efficiency=efficiency,
-                               purcell_factor=purcell_factor, regime=regime, timescale=timescale,
-                               parameters=parameters, name=name)
-        source.output.ports[0].close()
-        source.mask()
-        return source
+        return PurcellSource(pulse=pulse, gate=gate, efficiency=efficiency,
+                             purcell_factor=purcell_factor, regime=regime, timescale=timescale,
+                             parameters=parameters, name=name)
 
     @classmethod
     def phonon_assisted(cls, pulse: PulseBase = None, gate: Union[TimeInterval, list] = None, efficiency: float = 1,
@@ -36,14 +33,11 @@ class Source(SourceComponent):
                         resolution: int = 300, max_power: float = 30,
                         parameters: dict = None, name: str = None):
         efficiency = parinit({'efficiency': efficiency}, parameters)['efficiency']
-        source = PhononAssistedSource(pulse=pulse, gate=gate, efficiency=efficiency,
-                                      purcell_factor=purcell_factor, regime=regime, timescale=timescale,
-                                      temperature=temperature, material=material,
-                                      resolution=resolution, max_power=max_power,
-                                      parameters=parameters, name=name)
-        source.output.ports[0].close()
-        source.mask()
-        return source
+        return PhononAssistedSource(pulse=pulse, gate=gate, efficiency=efficiency,
+                                    purcell_factor=purcell_factor, regime=regime, timescale=timescale,
+                                    temperature=temperature, material=material,
+                                    resolution=resolution, max_power=max_power,
+                                    parameters=parameters, name=name)
 
     @classmethod
     def exciton(cls, pulse: PulseBase = None, gate: Union[TimeInterval, list] = None, efficiency: float = 1,

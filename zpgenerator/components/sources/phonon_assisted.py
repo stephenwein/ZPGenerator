@@ -55,4 +55,6 @@ class PhononAssistedSource(GatedSourceComponent):
         gate.create_insert_parameter_function(purcell_timescale, gate_par)
 
         super().__init__(emitter=emitter, gate=gate, efficiency=efficiency, name=name)
+        self.output.ports[0].close()
+        self.mask()
         self.default_name = '_PhononAssisted'

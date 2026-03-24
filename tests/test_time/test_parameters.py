@@ -1,5 +1,7 @@
 from zpgenerator.time.parameters.parameterized_object import *
 from zpgenerator.time.parameters.dictionary import Parameters
+from zpgenerator.time.parameters.collection import ParameterizedCollection
+from pytest import raises
 
 d = Parameters.DELIMITER
 
@@ -218,7 +220,6 @@ def test_overwrite_parameter_function():
                                       'current_year': 2023,
                                       'height': 180,
                                       'weight': 70}
-
     assert obj.set_parameters({'age': 29}).default == {'age': 33,
                                                        'birth_year': 1990,
                                                        'current_year': 2023,
@@ -228,6 +229,13 @@ def test_overwrite_parameter_function():
 
     assert obj.set_parameters({'current_year': 2024}).default == {'birth_year': 1990, 'height': 180, 'weight': 70}
     assert obj.set_parameters({'current_year': 2024}).user == {'age': 34, 'current_year': 2024}
+
+
+def test_parameterized_collection_rejects_invalid_object_type():
+    collection = ParameterizedCollection()
+
+    with raises(TypeError, match="Cannot add object of type"):
+        collection.add(1)
 
 
 def test_uses_parameter():
