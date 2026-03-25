@@ -54,9 +54,25 @@ class Parameters:
             return False, name
 
     @classmethod
+    def split_key(cls, key: str) -> list[str]:
+        return key.split(cls.DELIMITER)
+
+    @classmethod
+    def head(cls, key: str) -> str:
+        return cls.split_key(key)[0]
+
+    @classmethod
+    def is_wildcard_key(cls, key: str) -> bool:
+        return cls.head(key) == cls.WILDCARD
+
+    @classmethod
+    def matches_name(cls, key: str, name: str) -> bool:
+        return cls.head(key) in {name, cls.WILDCARD}
+
+    @classmethod
     def remove_name(cls, key: str, name: str) -> str:
-        name_list = key.split(cls.DELIMITER)
-        if name_list[0] == name or name_list[0] == cls.WILDCARD:
+        name_list = cls.split_key(key)
+        if cls.matches_name(key, name):
             return cls.DELIMITER.join(name_list[1:])
         else:
             return key

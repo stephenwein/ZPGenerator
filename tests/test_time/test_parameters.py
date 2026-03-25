@@ -59,6 +59,19 @@ def test_set_parameter():
     assert alice.set_parameters({'age': 22, '_age': 26}).dict == {'age': 22}
 
 
+def test_parameter_key_scope_helpers():
+    assert Parameters.split_key('Alice/age') == ['Alice', 'age']
+    assert Parameters.head('Alice/age') == 'Alice'
+    assert Parameters.matches_name('Alice/age', 'Alice')
+    assert Parameters.matches_name('*/age', 'Alice')
+    assert not Parameters.matches_name('Bob/age', 'Alice')
+    assert Parameters.is_wildcard_key('*/age')
+    assert not Parameters.is_wildcard_key('Alice/age')
+    assert Parameters.remove_name('Alice/age', 'Alice') == 'age'
+    assert Parameters.remove_name('*/age', 'Alice') == 'age'
+    assert Parameters.remove_name('Bob/age', 'Alice') == 'Bob/age'
+
+
 def test_children():
     smith = ParameterizedObject(name='Smith')
     alice = ParameterizedObject(parameters={'age': 27}, name='Alice')

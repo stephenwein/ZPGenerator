@@ -292,7 +292,7 @@ class ParameterizedObject(AParameterizedObject):
                 else Parameters(parameters=parameters)
 
             if self.name:
-                parameters.remove_names(self.name)  # unnames parameter keys if self has a name
+                parameters.remove_names(self.name)  # make named and wildcard keys local to this object's scope
 
             parameters.underwrite_defaults(self.local_default_parameters)  # adds in local defaults
 
