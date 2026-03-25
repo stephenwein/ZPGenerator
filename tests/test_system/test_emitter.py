@@ -87,3 +87,27 @@ def test_emitter_add():
         '_environment': {'_EnvironmentBase': {'_TimeOperator': {'_operator': {'b': 1}}}},
         '_hamiltonian': {'_HamiltonianBase': {'_TimeOperator': {'_operator': {'a': 0}}}},
         '_transitions': {'_LindbladVector': {'_TimeOperator': {'_operator': {'c': 1}}}}}
+
+
+def test_emitter_set_system_preserves_behaviour():
+    system = _make_controlled_system()
+    transitions = LindbladVector([destroy(2), destroy(2)])
+    emitter = EmitterBase()
+    emitter.set_system(system=system, transitions=transitions)
+
+    assert emitter.evaluate(0) == system.evaluate(0)
+    assert emitter.evaluate_quadruple(0).transitions[0].constant == destroy(2)
+
+
+def test_emitter_set_system_preserves_subclass_state():
+    class TaggedEmitter(EmitterBase):
+        def __init__(self):
+            super().__init__()
+            self.tag = "keep-me"
+
+    system = _make_controlled_system()
+    emitter = TaggedEmitter()
+    emitter.set_system(system=system, transitions=LindbladVector([destroy(2)]))
+
+    assert emitter.tag == "keep-me"
+    assert emitter.system is system

@@ -38,7 +38,11 @@ class EvaluatedDiracOperator:
 
     @property
     def subdims(self):
-        return self.hamiltonian.dims[0]
+        if self.hamiltonian != 0:
+            return self.hamiltonian.dims[0]
+        if self.channel not in (0, 1):
+            return self.channel.dims[0][0]
+        return [1]
 
     def dag(self):
         return EvaluatedDiracOperator(hamiltonian=0 if self.hamiltonian == 0 else self.hamiltonian.dag(),

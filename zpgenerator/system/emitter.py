@@ -124,15 +124,21 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
     def set_system(self,
                    system: AQuantumSystem,
                    transitions: Union[LindbladVector, List[Qobj], List[ATimeOperator]] = None):
-        EmitterBase.__init__(self,
-                             hamiltonian=system.hamiltonian if hasattr(system, 'hamiltonian') else None,
-                             environment=system.environment if hasattr(system, 'environment') else None,
-                             control=system.control if hasattr(system, 'control') else None,
-                             transitions=transitions,
-                             states=system.states if hasattr(system, 'states') else None,
-                             operators=system.operators if hasattr(system, 'operators') else None,
-                             parameters=system.local_default_parameters,
-                             name=system.name)
+        self.hamiltonian = system.hamiltonian if hasattr(system, 'hamiltonian') else HamiltonianBase()
+        self.environment = system.environment if hasattr(system, 'environment') else EnvironmentBase()
+        self.control = system.control if hasattr(system, 'control') else CompositeControl()
+        self.transitions = LindbladVector(transitions) if not isinstance(transitions, LindbladVector) else \
+            LindbladVector() if transitions is None else transitions
+        self.transitions.default_name = '_transitions'
+
+        self.states = system.states if hasattr(system, 'states') else {}
+        self.operators = system.operators if hasattr(system, 'operators') else {}
+
+        self._default_parameters = system.local_default_parameters if hasattr(system, 'local_default_parameters') else {}
+        self.name = system.name
+        self._objects = [self.hamiltonian, self.environment, self.control, self.transitions]
+        self.set_children(self._objects)
+        self._check_objects()
         self.system = system
 
     def _add(self, system, parameters: dict = None, name: str = None):

@@ -4,6 +4,7 @@ from ..time.evaluate.quadruple import series_product_quadruples
 from ..system import AElement, AScatteringMatrix, AQuantumSystem, AQuantumEmitter
 from typing import List, Union
 from math import prod
+from functools import reduce
 from qutip import tensor, Qobj
 from itertools import chain
 import warnings
@@ -147,9 +148,9 @@ class ElementCollection(AElement, TimeOperatorCollection):
 
     def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
         parameters = self.set_parameters(parameters)
-        return self._rule(id_flatten([op.evaluate_dirac(t, parameters) for op in self._objects
-                                      if isinstance(op, AQuantumEmitter) or isinstance(op, ElementCollection)]),
-                          EvaluatedDiracOperator())
+        dirac_ops = id_flatten([op.evaluate_dirac(t, parameters) for op in self._objects
+                                if isinstance(op, AQuantumEmitter) or isinstance(op, ElementCollection)])
+        return reduce(lambda left, right: left * right, dirac_ops[1:], dirac_ops[0]) if dirac_ops else EvaluatedDiracOperator()
 
 
     @property
