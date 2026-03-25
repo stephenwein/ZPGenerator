@@ -18,7 +18,8 @@ class CouplingTerm(TimeOperatorCollection):
 
     def _check_objects(self):
         self._check_keys()  # self.operators is mutable, children updated automatically, only check_keys left to do
-        assert all(not op.is_super for op in self._objects), "Cannot add superoperators."
+        if not all(not op.is_super for op in self._objects):
+            raise ValueError("Cannot add superoperators.")
 
     @property
     def bodies(self):
@@ -60,7 +61,8 @@ class CouplingBase(HamiltonianBase):
 
     def _check_objects(self):
         super()._check_objects()
-        assert all(op.bodies == self.bodies for op in self._objects), "Number of bodies must be the same for all terms"
+        if not all(op.bodies == self.bodies for op in self._objects):
+            raise ValueError("Number of bodies must be the same for all terms")
 
     @property
     def bodies(self):

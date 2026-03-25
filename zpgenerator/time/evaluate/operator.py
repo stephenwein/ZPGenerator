@@ -369,7 +369,8 @@ class EvaluatedOperator(EvaluatedFunction):
 
     def reshape(self, subdims: List[int] = None):
         subdims = _clean_dims(self.subdims) if subdims is None else subdims
-        assert prod(subdims) == self.dim, "Subdimension product must match the total dimension."
+        if prod(subdims) != self.dim:
+            raise ValueError("Subdimension product must match the total dimension.")
         if not isinstance(self.constant, Qobj):
             self.constant = qzero(subdims)
         self.constant.dims = [[subdims, subdims], [subdims, subdims]] if self.constant.issuper else [subdims, subdims]
@@ -382,13 +383,16 @@ class EvaluatedOperator(EvaluatedFunction):
 
 
 def evop_mv(m: EvaluatedOperator, v: List[EvaluatedOperator]):
-    assert m.dim == len(v), "Matrix dimensions must match vector length"
+    if m.dim != len(v):
+        raise ValueError("Matrix dimensions must match vector length")
     return [sum(m.element(i, j) * n for j, n in enumerate(v)) for i in range(0, m.dim)]
 
 
 def evop_umv(s: List[EvaluatedOperator], m: EvaluatedOperator, v: List[EvaluatedOperator]):
-    assert m.dim == len(v), "Matrix dimensions must match vector length"
-    assert m.dim == len(s), "Matrix dimensions must match vector length"
+    if m.dim != len(v):
+        raise ValueError("Matrix dimensions must match vector length")
+    if m.dim != len(s):
+        raise ValueError("Matrix dimensions must match vector length")
     return sum(o * (m.element(i, j) * n) for j, n in enumerate(v) for i, o in enumerate(s))
 
 

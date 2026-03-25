@@ -167,8 +167,8 @@ class MultiBodyEmitter(MultiBodyEmitterBase):
     def _check_objects(self):
         super()._check_objects()
         if self._subsystems and self.coupling.subdims:
-            assert self.subdims == self.coupling.subdims, \
-                "Coupling dimensions must match the dimensions of the coupled systems."
+            if self.subdims != self.coupling.subdims:
+                raise ValueError("Coupling dimensions must match the dimensions of the coupled systems.")
 
     def _check_add(self, system, parameters: dict = None, name: str = None):
         return super(SystemCollection, self)._check_add(system, parameters, name)

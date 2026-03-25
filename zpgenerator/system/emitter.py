@@ -31,8 +31,10 @@ class LindbladVector(AQuantumSystem, TimeVectorOperator):
 
     def _check_objects(self):
         super()._check_objects()
-        assert all(not op.is_super for op in self._objects), "Cannot add superoperators."
-        assert all(not op.has_instant for op in self._objects), "Cannot add instant operators."
+        if not all(not op.is_super for op in self._objects):
+            raise ValueError("Cannot add superoperators.")
+        if not all(not op.has_instant for op in self._objects):
+            raise ValueError("Cannot add instant operators.")
 
     def is_nonhermitian_time_dependent(self, t: float, parameters: dict = None):
         return self.is_time_dependent(t, parameters)
@@ -98,9 +100,10 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
     def _check_objects(self):
         super()._check_objects()
         if self.transitions.operator_list:
-            assert self.environment.operator_list, "Transitions cannot occur without an environment"
-            assert self.subdims == self.transitions.subdims, \
-                "Transition operator dimensions must match the dimensions of the system."
+            if not self.environment.operator_list:
+                raise ValueError("Transitions cannot occur without an environment")
+            if self.subdims != self.transitions.subdims:
+                raise ValueError("Transition operator dimensions must match the dimensions of the system.")
 
     @property
     def modes(self):

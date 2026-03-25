@@ -2,6 +2,7 @@ from zpgenerator.time.operator import *
 from qutip import destroy, tensor, create, sprepost, qeye
 from numpy import array, pi, sqrt
 from zpgenerator.time.parameters import Parameters
+import pytest
 
 d = Parameters.DELIMITER
 
@@ -71,6 +72,11 @@ def test_operator_init_super():
 
 def test_operator_identity():
     assert Operator.identity(5).evaluate() == qeye(5)
+
+
+def test_operator_rejects_non_square_qobj():
+    with pytest.raises(ValueError, match="Must be square."):
+        Operator(lambda args: Qobj([[1, 0]]))
 
 
 def test_operator_polarized():

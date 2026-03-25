@@ -4,6 +4,7 @@ from zpgenerator.time import TimeInstantFunction, TimeOperator, TimeIntervalFunc
 from qutip import destroy, create, qzero, fock, qeye, sprepost, liouvillian, Qobj
 from numpy import pi, exp, sqrt
 from math import isclose
+import pytest
 from zpgenerator.time.parameters import Parameters
 from tests_assertions import assert_empty_qobj
 
@@ -175,3 +176,11 @@ def test_controlled_system():
     assert isclose(sys.evaluate_quadruple(0).hamiltonian.list_form()[1][1](0, {}), sqrt(pi / 2))
     assert sys.evaluate_dirac(1).evaluate() == unitary_propagation_superoperator(sys.operators['X'])
     assert control_eval.instantaneous.evaluate() == unitary_propagation_superoperator(sys.operators['X'])
+
+
+def test_control_base_rejects_dimension_mismatch():
+    with pytest.raises(ValueError, match="Channel and HamiltonianBase must share the same dimensions"):
+        ControlBase(
+            hamiltonian=HamiltonianBase([destroy(2)]),
+            channel=ChannelBase([TimeOperator.dirac(destroy(3), time=0)]),
+        )

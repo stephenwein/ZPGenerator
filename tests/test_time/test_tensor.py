@@ -1,5 +1,6 @@
 from zpgenerator.time.evaluate.tensor import *
 from qutip import destroy, tensor, super_tensor,qeye, spre, create
+import pytest
 
 
 def test_tensor_insert():
@@ -12,6 +13,11 @@ def test_tensor_insert():
     op = tensor(destroy(2), destroy(3))
     assert tensor_insert(op, 1, [2, [2, 3], 3]) == tensor(qeye(2), op, qeye(3))
     assert tensor_insert(op, 2, [2, [2, 2], [2, 3]]) == tensor(qeye(2), qeye([2, 2]), op)
+
+
+def test_tensor_insert_rejects_dimension_mismatch():
+    with pytest.raises(ValueError, match="Position to insert must match the dimensions of the operator"):
+        tensor_insert(destroy(2), 0, [3, 2])
 
 
 def test_permute():

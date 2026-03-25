@@ -10,8 +10,8 @@ from .dims import is_trivial_dim, canonical_dim_list
 
 # A function that inserts operator op at position n in the tensor space of dims
 def tensor_insert(op: Qobj, n, dims):
-    assert canonical_dim_list(op.dims[0][0] if op.issuper else op.dims[0]) == canonical_dim_list(dims[n]), \
-        "Position to insert must match the dimensions of the operator"
+    if canonical_dim_list(op.dims[0][0] if op.issuper else op.dims[0]) != canonical_dim_list(dims[n]):
+        raise ValueError("Position to insert must match the dimensions of the operator")
     opvec = []
     for i in range(0, len(dims)):
         if i == n:

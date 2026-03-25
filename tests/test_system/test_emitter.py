@@ -3,6 +3,7 @@ from test_control import _make_controlled_system
 from qutip import destroy, num, create
 from zpgenerator.time.parameters import Parameters
 from tests_assertions import assert_empty_qobj
+import pytest
 
 
 d = Parameters.DELIMITER
@@ -111,3 +112,8 @@ def test_emitter_set_system_preserves_subclass_state():
 
     assert emitter.tag == "keep-me"
     assert emitter.system is system
+
+
+def test_emitter_rejects_transitions_without_environment():
+    with pytest.raises(ValueError, match="Transitions cannot occur without an environment"):
+        EmitterBase(transitions=[destroy(2)])

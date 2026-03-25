@@ -19,8 +19,10 @@ class HamiltonianBase(AQuantumSystem, CompositeTimeOperator):
 
     def _check_objects(self):
         self._check_keys()
-        assert all(op.subdims == self._objects[0].subdims for op in self._objects), "Operators must share dimensions."
-        assert all(not op.is_super for op in self._objects), "Cannot add superoperators."
+        if self._objects and not all(op.subdims == self._objects[0].subdims for op in self._objects):
+            raise ValueError("Operators must share dimensions.")
+        if self._objects and not all(not op.is_super for op in self._objects):
+            raise ValueError("Cannot add superoperators.")
 
     def is_nonhermitian_time_dependent(self, t: float, parameters: dict = None):
         return False
@@ -80,8 +82,8 @@ class NaturalSystem(SystemCollection):
     def _check_objects(self):
         self._check_keys()
         if self.hamiltonian.subdims and self.environment.subdims:
-            assert self.hamiltonian.subdims == self.environment.subdims, \
-                "EnvironmentBase and HamiltonianBase must share the same dimensions"
+            if self.hamiltonian.subdims != self.environment.subdims:
+                raise ValueError("EnvironmentBase and HamiltonianBase must share the same dimensions")
 
     def _check_add(self, operator, parameters: dict = None, name: str = None):
         return super(TimeFunctionCollection, self)._check_add(operator, parameters, name)

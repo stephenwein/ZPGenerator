@@ -33,7 +33,8 @@ class ChannelBase(CompositeTimeOperator):
 
     def _check_objects(self):
         super()._check_objects()
-        assert all(not op.has_interval for op in self._objects), "Operators must be instant."
+        if not all(not op.has_interval for op in self._objects):
+            raise ValueError("Operators must be instant.")
 
     def is_nonhermitian_time_dependent(self, t: float, parameters: dict = None):
         return self.is_super and self.is_time_dependent(t, self.set_parameters(parameters))
@@ -67,11 +68,11 @@ class ControlBase(NaturalSystem):
     def _check_objects(self):
         super()._check_objects()
         if self.channel.subdims and self.hamiltonian.subdims:
-            assert self.channel.subdims == self.hamiltonian.subdims, \
-                "Channel and HamiltonianBase must share the same dimensions"
+            if self.channel.subdims != self.hamiltonian.subdims:
+                raise ValueError("Channel and HamiltonianBase must share the same dimensions")
         if self.channel.subdims and self.environment.subdims:
-            assert self.channel.subdims == self.environment.subdims, \
-                "Channel and EnvironmentBase must share the same dimensions"
+            if self.channel.subdims != self.environment.subdims:
+                raise ValueError("Channel and EnvironmentBase must share the same dimensions")
     @property
     def subdims(self):
         return self.hamiltonian.subdims if self.hamiltonian.operators \
@@ -170,7 +171,8 @@ class ControlledSystem(NaturalSystem):
     def _check_objects(self):
         super()._check_objects()
         if self.control.operator_list:
-            assert self.subdims == self.control.subdims, "Controls must share the same dimensions as the HamiltonianBase"
+            if self.subdims != self.control.subdims:
+                raise ValueError("Controls must share the same dimensions as the HamiltonianBase")
 
     @property
     def objects(self):
