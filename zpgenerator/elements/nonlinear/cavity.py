@@ -113,7 +113,7 @@ class ShapedCavitySystem(CavitySystem):
                 times = linspace(times[0], times[-1], resolution)
                 shape = shape(times)
             else:
-                assert False, "Cannot create oscillator with the requested pulse shape."
+                raise TypeError("Cannot create oscillator with the requested pulse shape.")
 
             self.interval = [times[0], times[-1]]
 

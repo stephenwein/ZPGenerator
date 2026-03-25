@@ -1,6 +1,7 @@
 from zpgenerator.time.domain import *
 from pytest import raises
 from zpgenerator.time.parameters import Parameters
+import warnings
 
 d = Parameters.DELIMITER
 
@@ -31,9 +32,12 @@ def test_time_interval_string():
     assert window.times() == [0, 1]
     assert window.evaluate({'end': 2}) == [0, 2]
     assert window.times({'end': 2}) == [0, 2]
-    assert window.evaluate({'end':-1}) == [0, -1]
+    with warnings.catch_warnings(record=True) as captured:
+        warnings.simplefilter("always")
+        assert window.evaluate({'end':-1}) == [0, -1]
+    assert len(captured) == 1
 
-    with raises(AssertionError):
+    with raises(ValueError, match="non-decreasing"):
         TimeInterval(interval=['begin', 'end'], parameters={'begin': 2, 'end': 1})
 
     window = TimeInterval(interval=['begin', 'end'], parameters={'begin': 0, 'end': 1})
@@ -80,6 +84,15 @@ def test_time_instant_parameter_names():
     assert obj.default_parameters == {'time': 0}
     assert obj.parameter_tree({'time': 1}) == {'time': 1}
     assert obj.parameter_tree({'switch' + d + 'time': 2}) == {'time': 2}
+
+
+def test_time_interval_warns_on_reverse_evaluation():
+    window = TimeInterval(interval=['begin', 'end'], parameters={'begin': 0, 'end': 1})
+    with warnings.catch_warnings(record=True) as captured:
+        warnings.simplefilter("always")
+        assert window.evaluate({'begin': 2, 'end': 1}) == [2, 1]
+    assert len(captured) == 1
+    assert "negative interval" in str(captured[0].message)
 
 
 def test_merge_intervals():

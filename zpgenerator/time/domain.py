@@ -2,6 +2,7 @@ from .parameters.parameterized_object import AParameterizedObject, Parameterized
 from abc import abstractmethod
 from typing import Union
 from math import isinf
+import warnings
 
 
 class ATimeDomain(AParameterizedObject):
@@ -53,8 +54,10 @@ class TimeInterval(ParameterizedObject, ATimeDomain):
 
     def _check_interval(self):
         test = self.interval(self.get_parameters()) if self.is_callback else self.interval
-        assert len(test) == 2, "evaluate() must return a list of two values."
-        assert self._check_sorted(test), "evaluate() must return values in non-decreasing order"
+        if len(test) != 2:
+            raise ValueError("evaluate() must return a list of two values.")
+        if not self._check_sorted(test):
+            raise ValueError("evaluate() must return values in non-decreasing order")
 
     def _parameterize(self):
         begin = self.interval[0]
@@ -76,7 +79,10 @@ class TimeInterval(ParameterizedObject, ATimeDomain):
 
     def _warn_reverse(self, interval):
         if not self._check_sorted(interval):
-            print("TimeInterval Warning: evaluation produced a negative interval that may cause unexpected behaviour.")
+            warnings.warn(
+                "TimeInterval evaluation produced a negative interval that may cause unexpected behaviour.",
+                stacklevel=2,
+            )
         return interval
 
     def evaluate(self, parameters: dict = None) -> list:
@@ -123,8 +129,10 @@ class TimeInstant(ParameterizedObject, ATimeDomain):
 
     def _check_instant(self):
         test = self.evaluate()
-        assert len(test) == 1, "domain() must return a list of one value."
-        assert not isinf(float(test[0])), "an instant must be a finite value of time."
+        if len(test) != 1:
+            raise ValueError("domain() must return a list of one value.")
+        if isinf(float(test[0])):
+            raise ValueError("An instant must be a finite value of time.")
 
     def _parameterize(self):
         key = self.instant[0]

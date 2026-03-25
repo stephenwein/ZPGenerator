@@ -10,7 +10,7 @@ def test_pulse_base_inf():
     pulse.add(func)
     assert pulse.evaluate(0) == 1
     assert pulse.area() == float('inf')
-    with raises(AssertionError):
+    with raises(ValueError, match="No pulse boundaries found"):
         pulse.plot()
 
 

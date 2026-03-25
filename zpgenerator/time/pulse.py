@@ -50,7 +50,7 @@ class PulseBase(CompositeTimeFunction):
         parameters = self.set_parameters(parameters)
         interval = self.times(parameters)
         if len(interval) < 2:
-            assert False, "No boundaries found, please specify."
+            raise ValueError("No pulse boundaries found; please specify plot bounds explicitly.")
         times = linspace((interval[0] if start is None else start) - 10 ** -12,
                          (interval[-1] if end is None else end) + 10 ** -12,
                          resolution)

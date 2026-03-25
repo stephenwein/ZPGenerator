@@ -71,6 +71,8 @@ class Control(ControlBase):
         :param operator: a channel (operator or superoperator) that is applied directly to the state.
         :return: a Control object.
         """
-        assert not pulse.has_interval, "Pulse must include only Dirac delta functions."
-        assert pulse.has_instant, "Pulse must include at least one Dirac delta."
+        if pulse.has_interval:
+            raise ValueError("Pulse must include only Dirac delta functions.")
+        if not pulse.has_instant:
+            raise ValueError("Pulse must include at least one Dirac delta.")
         return ControlBase(channel=TimeOperator(operator=operator, functions=pulse))
