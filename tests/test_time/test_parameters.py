@@ -1,6 +1,8 @@
 from zpgenerator.time.parameters.parameterized_object import *
 from zpgenerator.time.parameters.dictionary import Parameters
 from zpgenerator.time.parameters.collection import ParameterizedCollection
+from zpgenerator.dynamic import Pulse
+from zpgenerator.time import PulseBase
 from pytest import raises
 
 d = Parameters.DELIMITER
@@ -351,4 +353,22 @@ def test_expand_parameters_combines_multiple_entries():
         'Alice/age': 29,
         'Alice/weight': 50,
         'Bob/weight': 50,
+    }
+
+
+def test_nested_wildcard_queries_match_visible_parameter_space():
+    sequence = PulseBase(name='excitation')
+    subsequence = PulseBase(name='subsequence 1')
+    subsequence.add(Pulse.gaussian(parameters={'delay': 0}), name='pulse 1')
+    subsequence.add(Pulse.gaussian(parameters={'delay': 2}), name='pulse 2')
+    sequence.add(subsequence)
+
+    assert sequence.parameter_candidates('subsequence 1/*/width') == [
+        'subsequence 1/pulse 1/width',
+        'subsequence 1/pulse 2/width',
+    ]
+    assert sequence.parameter_candidates('excitation/*/width') == []
+    assert sequence.expand_parameters({'subsequence 1/*/width': 0.2}) == {
+        'subsequence 1/pulse 1/width': 0.2,
+        'subsequence 1/pulse 2/width': 0.2,
     }
