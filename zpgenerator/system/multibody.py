@@ -43,6 +43,7 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
         self._subsystems = []
         super().__init__(systems=[], parameters=parameters, name=name, rule=sum_tensor,
                          types=types if types else [AQuantumSystem])
+        self._sync_objects()
         if subsystems:
             self.add(subsystems)
 
@@ -53,8 +54,19 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
         self._check_keys()
 
     def _check_add(self, system, parameters: dict = None, name: str = None):
-        self._subsystems.append(system)
-        return system
+        return super(SystemCollection, self)._check_add(system, parameters, name)
+
+    @property
+    def objects(self):
+        return self._subsystems
+
+    def _sync_objects(self):
+        self._objects = self._subsystems
+        self.set_children([self._objects])
+
+    def _add(self, system, parameters: dict = None, name: str = None):
+        self._subsystems.append(self._check_add(system, parameters, name))
+        self._sync_objects()
 
     @property
     def states(self) -> dict:
@@ -142,8 +154,7 @@ class MultiBodyEmitter(MultiBodyEmitterBase):
         self.coupling = CouplingBase()
         self.control = CompositeControl()
         super().__init__(states=states, operators=operators, parameters=parameters, name=name, types=types)
-        self._objects.append(self.coupling)
-        self._objects.append(self.control)
+        self._sync_objects()
         if subsystems:
             for system in subsystems:
                 self.add(system)
@@ -155,13 +166,16 @@ class MultiBodyEmitter(MultiBodyEmitterBase):
 
     def _check_objects(self):
         super()._check_objects()
-        if self._objects and self.coupling.subdims:
+        if self._subsystems and self.coupling.subdims:
             assert self.subdims == self.coupling.subdims, \
                 "Coupling dimensions must match the dimensions of the coupled systems."
 
     def _check_add(self, system, parameters: dict = None, name: str = None):
-        self._subsystems.append(system)
-        return system
+        return super(SystemCollection, self)._check_add(system, parameters, name)
+
+    def _sync_objects(self):
+        self._objects = self._subsystems + [self.coupling, self.control]
+        self.set_children([self._subsystems, self.coupling, self.control])
 
     def _add(self, system, parameters: dict = None, name: str = None):
         if isinstance(system, CouplingTerm) or isinstance(system, CouplingBase):
@@ -169,8 +183,9 @@ class MultiBodyEmitter(MultiBodyEmitterBase):
         elif isinstance(system, ControlBase):
             self.control.add(system, parameters, name)
         else:
-            super()._add(system, parameters, name)
+            self._subsystems.append(self._check_add(system, parameters, name))
             self._extend_space(system.subdims)
+        self._sync_objects()
 
     def _extend_space(self, subdims):
         self.coupling.pad_right(subdims)

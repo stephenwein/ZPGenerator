@@ -87,7 +87,7 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
                          states=states, operators=operators, parameters=parameters, name=name,
                          types=[HamiltonianBase, EnvironmentBase, ChannelBase, ControlBase, LindbladVector]
                          if types is None else types)
-        self._objects.append(self.transitions)
+        self._sync_objects()
         self._check_objects()
 
         self._initial_time = None
@@ -122,6 +122,14 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
     def initial_time(self, time: Union[float, int]):
         self._initial_time = time
 
+    @property
+    def objects(self):
+        return [self.hamiltonian, self.environment, self.control, self.transitions]
+
+    def _sync_objects(self):
+        self._objects = self.objects
+        self.set_children(self._objects)
+
     def set_system(self,
                    system: AQuantumSystem,
                    transitions: Union[LindbladVector, List[Qobj], List[ATimeOperator]] = None):
@@ -137,8 +145,7 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
 
         self._default_parameters = system.local_default_parameters if hasattr(system, 'local_default_parameters') else {}
         self.name = system.name
-        self._objects = [self.hamiltonian, self.environment, self.control, self.transitions]
-        self.set_children(self._objects)
+        self._sync_objects()
         self._check_objects()
         self.system = system
 

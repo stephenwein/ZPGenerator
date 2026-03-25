@@ -74,8 +74,7 @@ class NaturalSystem(SystemCollection):
 
         super().__init__(parameters=parameters, name=name, rule=sum,
                          types=[HamiltonianBase, EnvironmentBase] if types is None else types)
-        self._objects.append(self.hamiltonian)
-        self._objects.append(self.environment)
+        self._sync_objects()
         self._check_objects()
 
     def _check_objects(self):
@@ -86,6 +85,14 @@ class NaturalSystem(SystemCollection):
 
     def _check_add(self, operator, parameters: dict = None, name: str = None):
         return super(TimeFunctionCollection, self)._check_add(operator, parameters, name)
+
+    @property
+    def objects(self):
+        return [self.hamiltonian, self.environment]
+
+    def _sync_objects(self):
+        self._objects = self.objects
+        self.set_children(self._objects)
 
     def _add(self, operator: Union[HamiltonianBase, EnvironmentBase], parameters: dict = None, name: str = None):
         if isinstance(operator, HamiltonianBase):

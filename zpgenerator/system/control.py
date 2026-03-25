@@ -61,7 +61,7 @@ class ControlBase(NaturalSystem):
         super().__init__(hamiltonian=hamiltonian, environment=environment, parameters=parameters, name=name,
                          types=[HamiltonianBase, EnvironmentBase, ChannelBase] if types is None else types)
 
-        self._objects.append(self.channel)
+        self._sync_objects()
         self._check_objects()
 
     def _check_objects(self):
@@ -77,6 +77,14 @@ class ControlBase(NaturalSystem):
         return self.hamiltonian.subdims if self.hamiltonian.operators \
             else self.environment.subdims if self.environment.subdims \
             else self.channel.subdims
+
+    @property
+    def objects(self):
+        return [self.hamiltonian, self.environment, self.channel]
+
+    def _sync_objects(self):
+        self._objects = self.objects
+        self.set_children(self._objects)
 
     def _add(self, control, parameters: dict = None, name: str = None):
         if isinstance(control, HamiltonianBase):
@@ -156,13 +164,21 @@ class ControlledSystem(NaturalSystem):
                          parameters=parameters, name=name,
                          types=[HamiltonianBase, EnvironmentBase, ChannelBase, ControlBase] if types is None else types)
 
-        self._objects.append(self.control)
+        self._sync_objects()
         self._check_objects()
 
     def _check_objects(self):
         super()._check_objects()
         if self.control.operator_list:
             assert self.subdims == self.control.subdims, "Controls must share the same dimensions as the HamiltonianBase"
+
+    @property
+    def objects(self):
+        return [self.hamiltonian, self.environment, self.control]
+
+    def _sync_objects(self):
+        self._objects = self.objects
+        self.set_children(self._objects)
 
     def _add(self, operator: Union[HamiltonianBase, EnvironmentBase, ControlBase, CompositeControl],
              parameters: dict = None, name: str = None):
