@@ -300,3 +300,35 @@ def test_parameter_candidates_and_resolution():
 
     with raises(ValueError, match="Wildcard parameter updates are not supported"):
         smith.resolve_parameter('*/age')
+
+
+def test_expand_parameter_returns_explicit_mapping():
+    smith = ParameterizedObject(name='Smith')
+    alice = ParameterizedObject(parameters={'age': 27, 'weight': 70}, name='Alice')
+    bob = ParameterizedObject(parameters={'age': 25, 'height': 176}, name='Bob')
+    smith.add_child(alice)
+    smith.add_child(bob)
+
+    assert smith.expand_parameter('weight', 66) == {'Alice/weight': 66}
+    assert smith.expand_parameter('Alice/age', 30) == {'Alice/age': 30}
+    assert smith.expand_parameter('*/age', 55) == {'Alice/age': 55, 'Bob/age': 55}
+
+    with raises(ValueError, match="Ambiguous parameter 'age'"):
+        smith.expand_parameter('age', 55)
+
+    with raises(ValueError, match="No parameters match query"):
+        smith.expand_parameter('*/unknown', 1)
+
+
+def test_expand_parameters_combines_multiple_entries():
+    smith = ParameterizedObject(name='Smith')
+    alice = ParameterizedObject(parameters={'age': 27, 'weight': 70}, name='Alice')
+    bob = ParameterizedObject(parameters={'age': 25, 'weight': 80}, name='Bob')
+    smith.add_child(alice)
+    smith.add_child(bob)
+
+    assert smith.expand_parameters({'*/weight': 50, 'Alice/age': 29}) == {
+        'Alice/age': 29,
+        'Alice/weight': 50,
+        'Bob/weight': 50,
+    }

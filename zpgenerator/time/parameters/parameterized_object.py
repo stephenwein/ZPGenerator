@@ -100,6 +100,14 @@ class AParameterizedObject(ABC):
     def resolve_parameter(self, key: str) -> str:
         pass
 
+    @abstractmethod
+    def expand_parameter(self, key: str, value):
+        pass
+
+    @abstractmethod
+    def expand_parameters(self, mapping: dict) -> dict:
+        pass
+
 
 class ChildParameterizedObject:
     """
@@ -312,6 +320,20 @@ class ParameterizedObject(AParameterizedObject):
                 )
             )
         return candidates[0] if candidates else key
+
+    def expand_parameter(self, key: str, value):
+        if Parameters.contains_wildcard(key):
+            candidates = self.parameter_candidates(key)
+            if not candidates:
+                raise ValueError("No parameters match query '{key}'.".format(key=key))
+            return {candidate: value for candidate in candidates}
+        return {self.resolve_parameter(key): value}
+
+    def expand_parameters(self, mapping: dict) -> dict:
+        expanded = {}
+        for key, value in mapping.items():
+            expanded.update(self.expand_parameter(key, value))
+        return expanded
 
     def _resolve_parameter_scope(self, parameters: Parameters) -> Parameters:
         parameters.default = {self.resolve_parameter(k): v for k, v in parameters.default.items()}
