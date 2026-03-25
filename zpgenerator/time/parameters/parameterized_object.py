@@ -277,6 +277,33 @@ class ParameterizedObject(AParameterizedObject):
             new_keys.append(key)
         return [key[1] + ' (' + str(key[0]) + ')' if key[0] != 0 else key[1] for key in new_keys]
 
+    def _visible_parameter_candidates(self, key: str) -> list[str]:
+        visible = self.parameters
+        if key in visible:
+            return [key]
+        if Parameters.DELIMITER in key:
+            return [candidate for candidate in visible if candidate == key]
+        return [candidate for candidate in visible if candidate.split(Parameters.DELIMITER)[-1] == key]
+
+    def _resolve_parameter_key(self, key: str) -> str:
+        if Parameters.contains_wildcard(key):
+            raise ValueError("Wildcard parameter updates are not supported; use explicit parameter paths.")
+
+        candidates = self._visible_parameter_candidates(key)
+        if len(candidates) > 1:
+            raise ValueError(
+                "Ambiguous parameter '{key}'. Use one of: {candidates}".format(
+                    key=key,
+                    candidates=", ".join(sorted(candidates)),
+                )
+            )
+        return candidates[0] if candidates else key
+
+    def _resolve_parameter_scope(self, parameters: Parameters) -> Parameters:
+        parameters.default = {self._resolve_parameter_key(k): v for k, v in parameters.default.items()}
+        parameters.user = {self._resolve_parameter_key(k): v for k, v in parameters.user.items()}
+        return parameters
+
     def set_parameters(self, parameters: Union[dict, Parameters, frozendict] = None) -> Union[dict, Parameters, None]:
         """
         Takes a dictionary of named parameters, extracts parameters associated with keys, and adds in any defaults.
@@ -294,6 +321,7 @@ class ParameterizedObject(AParameterizedObject):
             if self.name:
                 parameters.remove_names(self.name)  # make named and wildcard keys local to this object's scope
 
+            parameters = self._resolve_parameter_scope(parameters)
             parameters.underwrite_defaults(self.local_default_parameters)  # adds in local defaults
 
             parameters = self._parameter_function(parameters)  # apply parameter function

@@ -66,8 +66,12 @@ class Parameters:
         return cls.head(key) == cls.WILDCARD
 
     @classmethod
+    def contains_wildcard(cls, key: str) -> bool:
+        return cls.WILDCARD in cls.split_key(key)
+
+    @classmethod
     def matches_name(cls, key: str, name: str) -> bool:
-        return cls.head(key) in {name, cls.WILDCARD}
+        return cls.head(key) == name
 
     @classmethod
     def remove_name(cls, key: str, name: str) -> str:
