@@ -162,6 +162,7 @@ class ParameterizedObject(AParameterizedObject):
         self._keys = [child.named_parameters for child in self._children]  # initialise list of keys to watch for
         self._keys = [key for child in self._keys for key in child]  # flattening list of lists
         self._keys += list(self._default_parameters.keys())  # add any keys in default dictionary
+        self._keys += [key for function in self._parameter_function.functions for key in function.output_keys]
         self._keys = list(set(self._keys))  # remove duplicates
 
         self._taken_keys = sorted([self._renames.get(k, k) for k in self._keys if k not in self._renames.values()])
@@ -224,11 +225,12 @@ class ParameterizedObject(AParameterizedObject):
         :return: a dictionary of parameters
         """
         self._check_keys()
-        params = {}
-        for i, child in enumerate(self._children):
-            child_params = {self._renames.get(*[child.name_key(k)] * 2): v for k, v in child.default_parameters.items()}
-            params.update(child_params)
-        params.update(self._output_local_default_parameters)
+        child_params = self._child_default_parameters()
+        local_params = self._apply_parameter_functions(
+            Parameters(default=self.local_default_parameters),
+            protected_defaults=child_params,
+        ).dict
+        params = child_params | local_params
         return {k: v for k, v in params.items() if k[0] != Parameters.DEFAULT_PREFIX}
 
     @default_parameters.setter
@@ -252,7 +254,58 @@ class ParameterizedObject(AParameterizedObject):
 
     @property
     def _output_local_default_parameters(self):
-        return self._parameter_function(Parameters(default=self.local_default_parameters)).dict
+        return self._apply_parameter_functions(Parameters(default=self.local_default_parameters)).dict
+
+    def _child_default_parameters(self) -> dict:
+        params = {}
+        for child in self._children:
+            child_params = {self._renames.get(*[child.name_key(k)] * 2): v for k, v in child.default_parameters.items()}
+            params.update(child_params)
+        return params
+
+    @staticmethod
+    def _remove_parameter(parameters: Parameters, key: str):
+        parameters.default.pop(key, None)
+        parameters.user.pop(key, None)
+
+    def _blocked_parameter_outputs(self, before: dict, function: ParameterFunction, parameters: Parameters,
+                                   protected_defaults: dict) -> set[str]:
+        blocked = set()
+        if function.merge_mode == 'overwrite':
+            return blocked
+
+        for key in function.output_keys:
+            if key in before or key not in protected_defaults or key not in parameters.dict:
+                continue
+
+            protected_value = protected_defaults[key]
+            value = parameters.dict[key]
+            if function.merge_mode == 'error' and protected_value != value:
+                raise ValueError(
+                    "Derived parameter '{key}' conflicts with an existing child value. "
+                    "Use an explicit override or rename the parameter.".format(key=key)
+                )
+            blocked.add(key)
+
+        return blocked
+
+    def _apply_parameter_functions(self, parameters: Parameters, protected_defaults: dict = None) -> Parameters:
+        blocked_keys = set()
+        protected_defaults = protected_defaults if protected_defaults else {}
+
+        for function in self._parameter_function.functions:
+            before = parameters.dict.copy()
+            parameters = function(parameters)
+
+            if protected_defaults:
+                if function.merge_mode == 'overwrite':
+                    blocked_keys -= set(function.output_keys)
+                blocked_keys |= self._blocked_parameter_outputs(before, function, parameters, protected_defaults)
+
+        for key in blocked_keys:
+            self._remove_parameter(parameters, key)
+
+        return parameters
 
     def add_child(self, child: Union[AParameterizedObject, List[AParameterizedObject]]):
         if type(child) == list:
@@ -360,7 +413,10 @@ class ParameterizedObject(AParameterizedObject):
             parameters = self._resolve_parameter_scope(parameters)
             parameters.underwrite_defaults(self.local_default_parameters)  # adds in local defaults
 
-            parameters = self._parameter_function(parameters)  # apply parameter function
+            parameters = self._apply_parameter_functions(
+                parameters,
+                protected_defaults=self._child_default_parameters(),
+            )  # apply parameter function
 
             parameters.key_subset(self.uses_parameter)  # removes parameters not used by self or children
 
@@ -374,7 +430,11 @@ class ParameterizedObject(AParameterizedObject):
 
     def create_insert_parameter_function(self, function: callable, parameters: dict = None):
         parameters = parameters if parameters else self._output_local_default_parameters
-        self._parameter_function.append(ParameterFunction.overwrite(function=function, parameters=parameters))
+        output_keys = function(parameters).keys()
+        parameters = {k: v for k, v in parameters.items() if k not in output_keys}
+        for key in output_keys:
+            self._default_parameters.pop(key, None)
+        self._parameter_function.append(ParameterFunction.insert(function=function, parameters=parameters))
         self._update_default_parameters(parameters)
 
     def create_overwrite_parameter_function(self, function: callable, parameters: dict):
@@ -383,7 +443,20 @@ class ParameterizedObject(AParameterizedObject):
 
     def create_default_parameter_function(self, function: callable, parameters: dict = None):
         parameters = parameters if parameters else self._output_local_default_parameters
+        output_keys = function(parameters).keys()
+        parameters = {k: v for k, v in parameters.items() if k not in output_keys}
+        for key in output_keys:
+            self._default_parameters.pop(key, None)
         self._parameter_function.append(ParameterFunction.default(function=function, parameters=parameters))
+        self._update_default_parameters(parameters)
+
+    def create_error_parameter_function(self, function: callable, parameters: dict = None):
+        parameters = parameters if parameters else self._output_local_default_parameters
+        output_keys = function(parameters).keys()
+        parameters = {k: v for k, v in parameters.items() if k not in output_keys}
+        for key in output_keys:
+            self._default_parameters.pop(key, None)
+        self._parameter_function.append(ParameterFunction.error(function=function, parameters=parameters))
         self._update_default_parameters(parameters)
 
     def clear_parameter_functions(self):

@@ -177,7 +177,17 @@ def test_rename():
         smith.set_parameters({'Smith' + d + '*' + d + 'age': 55})
 
 
-def test_insert_parameter_function():
+def test_insert_parameter_function_fills_missing_values():
+    obj = ParameterizedObject(parameters={'age': 27, 'weight': 70, 'height': 180})
+    obj.create_insert_parameter_function(lambda args: {'bmi': args['weight'] / (args['height'] / 100) ** 2},
+                                         parameters={'weight': 80, 'height': 170})
+
+    assert obj.default_parameters == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.set_parameters().dict == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.set_parameters({'bmi': 20}).dict == {'age': 27, 'bmi': 20, 'height': 170, 'weight': 80}
+
+
+def test_insert_parameter_function_respects_child_defaults():
     obj = ParameterizedObject(parameters={'age': 27, 'weight': 70, 'height': 180})
     obj.add_child(ParameterizedObject(parameters={'bmi': 20}))
     assert obj.default_parameters == {'age': 27, 'bmi': 20, 'height': 180, 'weight': 70}
@@ -190,15 +200,15 @@ def test_insert_parameter_function():
     assert obj.local_default_parameters == {'age': 27, 'height': 170, 'weight': 80}
     assert obj._output_local_default_parameters == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
 
-    assert obj.default_parameters == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.default_parameters == {'age': 27, 'bmi': 20, 'height': 170, 'weight': 80}
 
     assert obj.set_parameters().user == {}
-    assert obj.set_parameters().dict == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.set_parameters().dict == {'age': 27, 'height': 170, 'weight': 80}
 
     assert obj.set_parameters({'bmi': 20}).user == {}
-    assert obj.set_parameters({'bmi': 20}).dict == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.set_parameters({'bmi': 20}).dict == {'age': 27, 'bmi': 20, 'height': 170, 'weight': 80}
 
-    assert obj.set_parameters({'height': 160}).user == {'bmi': 31.249999999999993, 'height': 160}
+    assert obj.set_parameters({'height': 160}).user == {'height': 160}
     assert obj.set_parameters({'height': 160}).default == {'age': 27, 'weight': 80}
 
 
@@ -208,13 +218,13 @@ def test_default_parameter_function():
     assert obj.default_parameters == {'age': 27, 'bmi': 20, 'height': 180, 'weight': 70}
     obj.create_default_parameter_function(lambda args: {'bmi': args['weight'] / (args['height'] / 100) ** 2},
                                           parameters={'weight': 70, 'height': 180})
-    assert obj.default_parameters == {'age': 27, 'bmi': 21.604938271604937, 'height': 180, 'weight': 70}
+    assert obj.default_parameters == {'age': 27, 'bmi': 20, 'height': 180, 'weight': 70}
 
     assert obj.set_parameters({'bmi': 20}).default == {'age': 27, 'height': 180, 'weight': 70, 'bmi': 20}
     assert obj.set_parameters({'bmi': 20}).user == {}
 
     assert obj.set_parameters({'height': 160}).default == {'age': 27, 'weight': 70}
-    assert obj.set_parameters({'height': 160}).user == {'height': 160, 'bmi': 27.343749999999996}
+    assert obj.set_parameters({'height': 160}).user == {'height': 160}
 
 
 def test_overwrite_parameter_function():
@@ -236,6 +246,16 @@ def test_overwrite_parameter_function():
 
     assert obj.set_parameters({'current_year': 2024}).default == {'birth_year': 1990, 'height': 180, 'weight': 70}
     assert obj.set_parameters({'current_year': 2024}).user == {'age': 34, 'current_year': 2024}
+
+
+def test_error_parameter_function_rejects_child_conflicts():
+    obj = ParameterizedObject(parameters={'weight': 70, 'height': 180})
+    obj.add_child(ParameterizedObject(parameters={'bmi': 20}))
+    obj.create_error_parameter_function(lambda args: {'bmi': args['weight'] / (args['height'] / 100) ** 2},
+                                        parameters={'weight': 70, 'height': 180})
+
+    with raises(ValueError, match="Derived parameter 'bmi' conflicts with an existing child value"):
+        _ = obj.default_parameters
 
 
 def test_parameterized_collection_rejects_invalid_object_type():

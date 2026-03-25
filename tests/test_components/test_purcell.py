@@ -1,7 +1,9 @@
 from zpgenerator.components import Source
 from zpgenerator.components.sources import PhononAssistedSource, PurcellSource
+from zpgenerator.dynamic import Pulse
 from zpgenerator.elements import TwoLevelEmitter, CavityEmitter, Emitter
 from zpgenerator.system import CouplingBase, MultiBodyEmitter
+from zpgenerator.time import TimeInterval
 
 
 def test_source_init():
@@ -44,4 +46,35 @@ def test_phonon_assisted_factory_matches_component_semantics():
     assert [port.is_closed for port in factory_source.input.ports] == [port.is_closed for port in component_source.input.ports]
 
 
+def test_purcell_emitter_keyword_defaults_still_overwrite_explicit_dependents():
+    emitter = Emitter.purcell(purcell_factor=5, regime=0.2, timescale=2)
+
+    parameters = emitter.set_parameters({'coupling': 999}).dict
+
+    assert parameters['coupling'] != 999
+    assert parameters['coupling'] == emitter.default_parameters['coupling']
+
+
+def test_purcell_gate_insert_preserves_explicit_rate():
+    pulse = Pulse.dirac()
+    defaults = PurcellSource().default_parameters
+    gate = TimeInterval.source_gate(pulse, parameters=defaults, parameter_name='_purcell_rate')
+    gate.create_insert_parameter_function(PurcellSource._purcell_rate)
+
+    derived_rate = PurcellSource._purcell_rate(defaults)['_purcell_rate']
+
+    assert gate.get_parameters()['_purcell_rate'] == derived_rate
+
+
+def test_inserted_public_purcell_rate_can_be_overridden_explicitly():
+    pulse = Pulse.dirac()
+    gate = TimeInterval.source_gate(
+        pulse,
+        parameters={'purcell_rate': 1, 'coupling': 5},
+        parameter_name='purcell_rate',
+    )
+    gate.create_insert_parameter_function(lambda args: {'purcell_rate': args['coupling']})
+
+    assert gate.get_parameters()['purcell_rate'] == 5
+    assert gate.get_parameters({'purcell_rate': 123})['purcell_rate'] == 123
 
