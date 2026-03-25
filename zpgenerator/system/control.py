@@ -163,7 +163,8 @@ class ControlledSystem(NaturalSystem):
 
         super().__init__(hamiltonian=hamiltonian, environment=environment, states=states, operators=operators,
                          parameters=parameters, name=name,
-                         types=[HamiltonianBase, EnvironmentBase, ChannelBase, ControlBase] if types is None else types)
+                         types=[HamiltonianBase, EnvironmentBase, ChannelBase, ControlBase, CompositeControl]
+                         if types is None else types)
 
         self._sync_objects()
         self._check_objects()
@@ -185,7 +186,7 @@ class ControlledSystem(NaturalSystem):
     def _add(self, operator: Union[HamiltonianBase, EnvironmentBase, ControlBase, CompositeControl],
              parameters: dict = None, name: str = None):
         super()._add(operator, parameters, name)
-        if isinstance(operator, ControlBase):
+        if isinstance(operator, (ControlBase, CompositeControl)):
             self.control.add(operator, parameters, name)
 
     def evaluate_control(self, t: float, parameters: dict = None) -> EvaluatedControl:

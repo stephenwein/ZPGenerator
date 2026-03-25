@@ -184,3 +184,16 @@ def test_control_base_rejects_dimension_mismatch():
             hamiltonian=HamiltonianBase([destroy(2)]),
             channel=ChannelBase([TimeOperator.dirac(destroy(3), time=0)]),
         )
+
+
+def test_controlled_system_add_accepts_composite_control():
+    system = ControlledSystem(hamiltonian=HamiltonianBase([destroy(2)]))
+    first = ControlBase(hamiltonian=HamiltonianBase([destroy(2)]), name='first')
+    second = ControlBase(environment=EnvironmentBase([destroy(2)]), name='second')
+    bundle = CompositeControl([first, second], name='bundle')
+
+    system.add(bundle)
+
+    assert len(system.control._objects) == 1
+    assert system.control._objects[0] is bundle
+    assert system.evaluate_control(0).continuous.evaluate(0) == bundle.evaluate_control(0).continuous.evaluate(0)

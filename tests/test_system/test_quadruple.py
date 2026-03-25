@@ -200,6 +200,23 @@ def test_quad_series_product_requires_equal_modes():
         quad0.series_product(quad1)
 
 
+def test_evaluatequad_rejects_dimension_mismatch_between_hamiltonian_and_environment():
+    with pytest.raises(ValueError, match="share the same dimensions"):
+        EvaluatedQuadruple(
+            hamiltonian=EvaluatedOperator(constant=destroy(2)),
+            environment=[EvaluatedOperator(constant=destroy(3))],
+        )
+
+
+def test_evaluatequad_rejects_dimension_mismatch_between_environment_and_transitions():
+    with pytest.raises(ValueError, match="share the same dimensions"):
+        EvaluatedQuadruple(
+            environment=[EvaluatedOperator(constant=destroy(2))],
+            transitions=[EvaluatedOperator(constant=destroy(3))],
+            scatterer=EvaluatedOperator(constant=qeye(1)),
+        )
+
+
 def test_quad_cascaded_mul_variable():
     quad0 = make_full_quad_variable(2, 2)
     quad1 = make_full_quad_variable(2, 2)

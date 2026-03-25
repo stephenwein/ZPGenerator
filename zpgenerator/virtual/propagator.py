@@ -211,6 +211,8 @@ class VPropTI(AVirtualPropagator):
             times = [virtual_state.time] + times
         if times[-1] != t:
             times.append(t)
+        if any(stop < start for start, stop in zip(times[:-1], times[1:])):
+            raise ValueError("Propagation times must be non-decreasing")
 
         states = [qb.copy_state(virtual_state.qobj)]
         probe_state = VState(

@@ -2,7 +2,7 @@ from .operator import EvaluatedOperator, evop_mv, evop_umv
 from typing import List
 from qutip import qzero, qeye, Qobj as _Qobj, liouvillian
 from copy import deepcopy
-from .dims import qzero_or_empty, qeye_or_empty
+from .dims import qzero_or_empty, qeye_or_empty, canonical_dim_list
 from functools import reduce
 
 
@@ -20,16 +20,7 @@ class EvaluatedQuadruple:
         self.hamiltonian = EvaluatedOperator() if hamiltonian is None else hamiltonian
         self.environment = [] if environment is None else environment
         self.transitions = [] if transitions is None else transitions
-
-        if hamiltonian:
-            self._subdims = hamiltonian.subdims
-        else:
-            if self.environment:
-                self._subdims = self.environment[0].subdims
-            elif self.transitions and isinstance(self.transitions[0], EvaluatedOperator):
-                self._subdims = self.transitions[0].subdims
-            else:
-                self._subdims = [0]
+        self._subdims = _infer_quadruple_subdims(self.hamiltonian, self.environment, self.transitions)
 
         if not self.transitions and scatterer is not None:
             if not (isinstance(scatterer, EvaluatedOperator) and scatterer._is_empty_operator()):
@@ -41,6 +32,7 @@ class EvaluatedQuadruple:
         else:
             self.scatterer = scatterer
 
+        _validate_quadruple_dims(self.hamiltonian, self.environment, self.transitions, self._subdims)
         if self.modes > 0 and self.modes != self.scatterer.dim:
             raise ValueError("Scattering matrices must have a dimension matching the number of modes")
 
@@ -179,6 +171,41 @@ class EvaluatedQuadruple:
 
 def _is_zero_evop(evop: EvaluatedOperator) -> bool:
     return not evop.variable and isinstance(evop.constant, _Qobj) and evop.constant == 0 * evop.constant
+
+
+def _has_concrete_subdims(evop: EvaluatedOperator) -> bool:
+    return isinstance(evop, EvaluatedOperator) and not evop._is_empty_operator()
+
+
+def _evop_subdims(evop: EvaluatedOperator):
+    return canonical_dim_list(evop.subdims)
+
+
+def _infer_quadruple_subdims(hamiltonian: EvaluatedOperator,
+                             environment: List[EvaluatedOperator],
+                             transitions: List[EvaluatedOperator]):
+    candidates = []
+    if _has_concrete_subdims(hamiltonian):
+        candidates.append(_evop_subdims(hamiltonian))
+    candidates.extend(_evop_subdims(env) for env in environment if _has_concrete_subdims(env))
+    candidates.extend(_evop_subdims(trn) for trn in transitions if _has_concrete_subdims(trn))
+    return candidates[0] if candidates else [0]
+
+
+def _validate_quadruple_dims(hamiltonian: EvaluatedOperator,
+                             environment: List[EvaluatedOperator],
+                             transitions: List[EvaluatedOperator],
+                             expected_subdims: List[int]):
+    if expected_subdims == [0]:
+        return
+    expected = canonical_dim_list(expected_subdims)
+    candidates = []
+    if _has_concrete_subdims(hamiltonian):
+        candidates.append(_evop_subdims(hamiltonian))
+    candidates.extend(_evop_subdims(env) for env in environment if _has_concrete_subdims(env))
+    candidates.extend(_evop_subdims(trn) for trn in transitions if _has_concrete_subdims(trn))
+    if any(candidate != expected for candidate in candidates):
+        raise ValueError("Hamiltonian, environment, and transitions must share the same dimensions")
 
 
 def _is_trivial_evop(evop: EvaluatedOperator) -> bool:
