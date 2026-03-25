@@ -68,8 +68,20 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
         self._subsystems.append(self._check_add(system, parameters, name))
         self._sync_objects()
 
+    @staticmethod
+    def _subsystem_label(system, index: int) -> str:
+        return system.name if getattr(system, 'name', None) else f"subsystem {index}"
+
+    def _require_tensor_ready_subsystems(self, action: str):
+        for i, system in enumerate(self._subsystems):
+            if system.dim is None or system.subdims is None:
+                raise ValueError(
+                    f"Subsystem '{self._subsystem_label(system, i)}' must define dim and subdims before {action}"
+                )
+
     @property
     def states(self) -> dict:
+        self._require_tensor_ready_subsystems("building multibody states")
         if not self._states or any(state.shape[0] != self.subdims for state in self._states.values()):
             if self._subsystems:
                 self._states = self._subsystems[0].states
@@ -79,6 +91,7 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
 
     @property
     def operators(self) -> dict:
+        self._require_tensor_ready_subsystems("building multibody operators")
         if not self._operators or any(op.shape[0] != self.subdims for op in self._operators.values()):
             self._operators = {}
             for i, system in enumerate(self._subsystems):
@@ -116,14 +129,17 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
 
     @property
     def dim(self) -> int:
+        self._require_tensor_ready_subsystems("computing multibody dimensions")
         return prod(system.dim for system in self._subsystems) if self._subsystems else None
 
     @property
     def subdims(self) -> list:
+        self._require_tensor_ready_subsystems("computing multibody dimensions")
         dimset = [system.subdims for system in self._subsystems]
         return [dim for dims in dimset for dim in dims] if self._subsystems else None
 
     def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        self._require_tensor_ready_subsystems("evaluating multibody dynamics")
         parameters = self.set_parameters(parameters)
         return self._rule([system.evaluate_quadruple(t, parameters) for system in self._subsystems],
                           EvaluatedQuadruple())
@@ -132,6 +148,7 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
         return [self.evaluate_quadruple(t, parameters)]
 
     def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        self._require_tensor_ready_subsystems("evaluating multibody dynamics")
         parameters = self.set_parameters(parameters)
         return self._rule(id_flatten([op.evaluate_dirac(t, parameters) for op in self._subsystems]),
                           EvaluatedDiracOperator())

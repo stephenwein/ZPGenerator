@@ -1,5 +1,6 @@
 from zpgenerator.system.multibody import *
 from zpgenerator.system.natural import HamiltonianBase
+from zpgenerator.system.control import ControlledSystem
 from zpgenerator.time import unitary_propagation_superoperator
 from test_control import _make_controlled_system
 from test_natural import _make_natural_system
@@ -9,6 +10,7 @@ from copy import deepcopy
 from numpy import pi, sqrt
 from zpgenerator.time.parameters import Parameters
 from tests_assertions import assert_empty_qobj
+import pytest
 
 
 d = Parameters.DELIMITER
@@ -156,3 +158,26 @@ def test_system_base_coupling():
     assert system.coupling.evaluate(0) == liouvillian(tensor(destroy(2), create(2)) + tensor(create(2), destroy(2)))
     assert system.evaluate(0) == liouvillian(H=tensor(destroy(2), create(2)) + tensor(create(2), destroy(2)),
                                              c_ops=[tensor(destroy(2), qeye(2)), tensor(qeye(2), destroy(2))])
+
+
+def test_multibodysystem_reports_incomplete_subsystem_dimensions_clearly():
+    system = MultiBodyEmitterBase(subsystems=[_make_system(), ControlledSystem(name='pending')])
+
+    with pytest.raises(ValueError, match="pending"):
+        _ = system.dim
+
+    with pytest.raises(ValueError, match="pending"):
+        _ = system.subdims
+
+    with pytest.raises(ValueError, match="pending"):
+        system.evaluate_quadruple(0)
+
+
+def test_multibodysystem_reports_incomplete_subsystem_state_tensoring_clearly():
+    system = MultiBodyEmitterBase(subsystems=[_make_system(), ControlledSystem(name='pending')])
+
+    with pytest.raises(ValueError, match="building multibody states"):
+        _ = system.states
+
+    with pytest.raises(ValueError, match="building multibody operators"):
+        _ = system.operators
