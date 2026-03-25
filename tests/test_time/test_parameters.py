@@ -274,3 +274,27 @@ def test_wildcard_parameter_updates_are_rejected():
 
     with raises(ValueError, match="Wildcard parameter updates are not supported"):
         alice.set_parameters({'*/age': 25})
+
+
+def test_parameter_candidates_and_resolution():
+    smith = ParameterizedObject(name='Smith')
+    alice = ParameterizedObject(parameters={'age': 27, 'weight': 70}, name='Alice')
+    bob = ParameterizedObject(parameters={'age': 25, 'height': 176}, name='Bob')
+    smith.add_child(alice)
+    smith.add_child(bob)
+
+    assert smith.parameter_candidates('age') == ['Alice/age', 'Bob/age']
+    assert smith.parameter_candidates('weight') == ['Alice/weight']
+    assert smith.parameter_candidates('Alice/age') == ['Alice/age']
+    assert smith.parameter_candidates('unknown') == []
+    assert smith.parameter_candidates('*/age') == []
+
+    assert smith.resolve_parameter('weight') == 'Alice/weight'
+    assert smith.resolve_parameter('Alice/age') == 'Alice/age'
+    assert smith.resolve_parameter('unknown') == 'unknown'
+
+    with raises(ValueError, match="Ambiguous parameter 'age'"):
+        smith.resolve_parameter('age')
+
+    with raises(ValueError, match="Wildcard parameter updates are not supported"):
+        smith.resolve_parameter('*/age')

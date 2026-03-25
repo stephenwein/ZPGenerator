@@ -92,6 +92,14 @@ class AParameterizedObject(ABC):
     def uses_parameter(self, name: str) -> bool:
         pass
 
+    @abstractmethod
+    def parameter_candidates(self, key: str) -> List[str]:
+        pass
+
+    @abstractmethod
+    def resolve_parameter(self, key: str) -> str:
+        pass
+
 
 class ChildParameterizedObject:
     """
@@ -285,23 +293,29 @@ class ParameterizedObject(AParameterizedObject):
             return [candidate for candidate in visible if candidate == key]
         return [candidate for candidate in visible if candidate.split(Parameters.DELIMITER)[-1] == key]
 
-    def _resolve_parameter_key(self, key: str) -> str:
+    def parameter_candidates(self, key: str) -> List[str]:
+        self._check_keys()
+        if Parameters.contains_wildcard(key):
+            return []
+        return sorted(self._visible_parameter_candidates(key))
+
+    def resolve_parameter(self, key: str) -> str:
         if Parameters.contains_wildcard(key):
             raise ValueError("Wildcard parameter updates are not supported; use explicit parameter paths.")
 
-        candidates = self._visible_parameter_candidates(key)
+        candidates = self.parameter_candidates(key)
         if len(candidates) > 1:
             raise ValueError(
                 "Ambiguous parameter '{key}'. Use one of: {candidates}".format(
                     key=key,
-                    candidates=", ".join(sorted(candidates)),
+                    candidates=", ".join(candidates),
                 )
             )
         return candidates[0] if candidates else key
 
     def _resolve_parameter_scope(self, parameters: Parameters) -> Parameters:
-        parameters.default = {self._resolve_parameter_key(k): v for k, v in parameters.default.items()}
-        parameters.user = {self._resolve_parameter_key(k): v for k, v in parameters.user.items()}
+        parameters.default = {self.resolve_parameter(k): v for k, v in parameters.default.items()}
+        parameters.user = {self.resolve_parameter(k): v for k, v in parameters.user.items()}
         return parameters
 
     def set_parameters(self, parameters: Union[dict, Parameters, frozendict] = None) -> Union[dict, Parameters, None]:
