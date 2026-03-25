@@ -1,4 +1,5 @@
 from collections import UserDict
+from fnmatch import fnmatchcase
 
 class TupleDict(UserDict):
 
@@ -72,6 +73,10 @@ class Parameters:
     @classmethod
     def matches_name(cls, key: str, name: str) -> bool:
         return cls.head(key) == name
+
+    @classmethod
+    def matches_query(cls, query: str, key: str) -> bool:
+        return fnmatchcase(key, query)
 
     @classmethod
     def remove_name(cls, key: str, name: str) -> str:

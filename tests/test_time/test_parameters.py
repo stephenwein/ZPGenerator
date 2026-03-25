@@ -287,7 +287,9 @@ def test_parameter_candidates_and_resolution():
     assert smith.parameter_candidates('weight') == ['Alice/weight']
     assert smith.parameter_candidates('Alice/age') == ['Alice/age']
     assert smith.parameter_candidates('unknown') == []
-    assert smith.parameter_candidates('*/age') == []
+    assert smith.parameter_candidates('*/age') == ['Alice/age', 'Bob/age']
+    assert smith.parameter_candidates('Alice/*') == ['Alice/age', 'Alice/weight']
+    assert smith.parameter_candidates('*') == ['Alice/age', 'Alice/weight', 'Bob/age', 'Bob/height']
 
     assert smith.resolve_parameter('weight') == 'Alice/weight'
     assert smith.resolve_parameter('Alice/age') == 'Alice/age'

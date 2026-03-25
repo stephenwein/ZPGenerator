@@ -296,7 +296,7 @@ class ParameterizedObject(AParameterizedObject):
     def parameter_candidates(self, key: str) -> List[str]:
         self._check_keys()
         if Parameters.contains_wildcard(key):
-            return []
+            return sorted(candidate for candidate in self.parameters if Parameters.matches_query(key, candidate))
         return sorted(self._visible_parameter_candidates(key))
 
     def resolve_parameter(self, key: str) -> str:
