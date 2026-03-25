@@ -67,3 +67,16 @@ def test_state_jumps_unnormalised():
     vprop = VPropTI(generator=liouvillian(0 * sigmaX, c_ops=[destroy(2)]), jumps=jumps)
     vprop.propagate(vstate, t=log(2))
     assert vstate == Qobj([[0, 0], [0, 0.25]])
+
+
+def test_vpropti_supports_expectation_sampling():
+    vstate = VState(state=fock(2, 1), time=0)
+    vprop = VPropTI(generator=liouvillian(0 * sigmaX, c_ops=[destroy(2)]), expect_operators=[num(2)])
+
+    result = vprop.propagate(vstate, t=1, tlist=[0, 0.5, 1])
+
+    assert result.times == [0, 0.5, 1]
+    assert len(result.states) == 3
+    assert len(result.expect) == 1
+    assert result.expect[0][0] == 1
+    assert isclose(result.expect[0][-1], exp(-1), rel_tol=1e-7)

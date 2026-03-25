@@ -5,7 +5,7 @@ from zpgenerator.virtual.tree import VTree
 from zpgenerator.virtual.branch import MeasurementBranch
 from zpgenerator.network.detector import TimeBin
 from zpgenerator.elements import Emitter
-from zpgenerator.time import TimeOperator, Operator, TimeIntervalFunction, TimeInterval
+from zpgenerator.time import TimeOperator, Operator, TimeIntervalFunction, TimeInterval, TimeFunction
 from qutip import destroy, create, fidelity, Qobj
 from numpy import pi
 from pytest import approx
@@ -38,8 +38,9 @@ def test_generator_time_independent():
     itime = times[0]
     vstate = VState(state=istate, time=itime)
 
+    assert gen.build_plan(itime, parameters).mode is PropagatorMode.TIME_INDEPENDENT
     vprop = gen.build_propagator(itime, parameters)
-    # assert isinstance(vprop, VPropTI)  # commented out since we use VPropHTD instead (much faster)
+    assert isinstance(vprop, VPropTI)
     assert vprop.jumps == []
 
     vprop.propagate(vstate, times[1])
@@ -63,3 +64,33 @@ def test_generator_time_independent():
     #
     # vtree.get_states()
     # vtree.get_points()
+
+
+def test_generator_hermitian_time_dependent():
+    emitter = Emitter.two_level(modes=1)
+    emitter.hamiltonian.add(
+        TimeOperator(
+            operator=destroy(2) + create(2),
+            functions=TimeFunction(lambda t, args: args["amp"] * t, parameters={"amp": 1}),
+        )
+    )
+
+    gen = Generator(component=emitter)
+    plan = gen.build_plan(0, {"amp": 0.5})
+    assert plan.mode is PropagatorMode.HERMITIAN_TIME_DEPENDENT
+    assert isinstance(gen.build_propagator(0, {"amp": 0.5}), VPropHTD)
+
+
+def test_generator_nonhermitian_time_dependent():
+    emitter = Emitter.two_level(modes=1)
+    emitter.environment.add(
+        TimeOperator(
+            operator=destroy(2),
+            functions=TimeFunction(lambda t, args: args["rate"] * (1 + t), parameters={"rate": 1}),
+        )
+    )
+
+    gen = Generator(component=emitter)
+    plan = gen.build_plan(0, {"rate": 0.5})
+    assert plan.mode is PropagatorMode.NONHERMITIAN_TIME_DEPENDENT
+    assert isinstance(gen.build_propagator(0, {"rate": 0.5}), VPropNHTD)

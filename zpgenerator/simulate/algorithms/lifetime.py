@@ -2,6 +2,7 @@ from ...time import merge_times, Lifetime
 from ...virtual import VState, Generator
 from ...network import AComponent
 from ...virtual.solver_options import copy_solver_options
+from .._processor_runtime import classify_propagation_step
 from numpy import linspace
 
 
@@ -36,8 +37,9 @@ def compute_lifetime(source: AComponent,
     for i in range(1, len(times)):  # Propagate from initial time to final time
         t0 = times[i - 1]  # current time
         t1 = times[i]  # next stop time
+        step = classify_propagation_step(source, t0, parameters=parameters)
 
-        if source.is_dirac(t0, parameters):  # if we have instant operators
+        if step.has_instantaneous_operation:
             dirac_operator = source.evaluate_dirac(t0, parameters).evaluate()
             state.apply_operator(dirac_operator)
 

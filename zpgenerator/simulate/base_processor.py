@@ -10,6 +10,7 @@ from ._processor_helpers import (
 from ._processor_runtime import (
     assert_continue_allowed,
     build_propagation_times,
+    classify_propagation_step,
     initialise_or_resume_grove,
 )
 from ._processor_results import ProcessorResultMaps
@@ -257,11 +258,12 @@ class ProcessorBase:
         for i in range(1, len(times)):  # Propagate from initial time to final time
             t0 = times[i - 1]  # current time
             t1 = times[i]  # next stop time
+            step = classify_propagation_step(self.component, t0, parameters=parameters, branch_times=branch_times)
 
-            if self.component.is_dirac(t0, parameters):  # we have instant operators to apply
+            if step.has_instantaneous_operation:
                 grove.apply_operator(self.component.evaluate_dirac(t0, parameters))
 
-            if t0 in branch_times:  # we begin a measurement time bin
+            if step.opens_measurement_branch:
                 branch_order += grove.add_branches(t0, branches)
 
             # build propagator

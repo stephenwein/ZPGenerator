@@ -4,6 +4,7 @@ from ..time import EvaluatedOperator, Func
 from .solver_options import mesolve_options
 from abc import ABC, abstractmethod
 from typing import Union
+from dataclasses import dataclass
 
 
 class AVirtualPropagator(ABC):
@@ -20,6 +21,13 @@ class AVirtualPropagator(ABC):
     @abstractmethod
     def propagate(self, virtual_state: VState, t: float, tlist: list = None):
         pass
+
+
+@dataclass
+class VirtualPropagationResult:
+    times: list[float]
+    states: list[qb.BackendState]
+    expect: list[list]
 
 
 class VPropHTD(AVirtualPropagator):
@@ -182,20 +190,47 @@ class VPropTI(AVirtualPropagator):
     def __init__(self,
                  generator: qb.BackendOperator,
                  jumps: list[qb.BackendOperator] = None,
+                 expect_operators: Union[list, None] = None,
                  ):
         if not (generator.isoper or generator.issuper):
             raise TypeError("gen must be an operator or superoperator")
         self.generator = qb.to_superoperator(generator)
         self.jumps = [] if jumps is None else jumps
+        self.expect_operators = [] if expect_operators is None else expect_operators
 
     def jump(self, vconfig):
         default = 0 * self.generator
         return sum([-vconfig[i] * list_get(self.jumps, i, default) for i in range(0, len(vconfig))], default)
 
     def propagate(self, virtual_state: VState, t: float, tlist: list = None):
-        virtual_state.apply_generator(op=(self.generator + self.jump(virtual_state.virtual_configuration)),
-                                      time=t - virtual_state.time)
-        virtual_state.time = t
+        step_generator = self.generator + self.jump(virtual_state.virtual_configuration)
+        times = [virtual_state.time, t] if tlist is None else list(tlist)
+        if not times:
+            times = [virtual_state.time, t]
+        if times[0] != virtual_state.time:
+            times = [virtual_state.time] + times
+        if times[-1] != t:
+            times.append(t)
+
+        states = [qb.copy_state(virtual_state.qobj)]
+        probe_state = VState(
+            state=virtual_state.qobj,
+            time=virtual_state.time,
+            virtual_configuration=virtual_state.virtual_configuration,
+        )
+
+        for start, stop in zip(times[:-1], times[1:]):
+            probe_state.apply_generator(op=step_generator, time=stop - start)
+            probe_state.time = stop
+            states.append(qb.copy_state(probe_state.qobj))
+
+        expect = [
+            [qb.evaluate_expectation(e_op, time, state) for time, state in zip(times, states)]
+            for e_op in self.expect_operators
+        ]
+
+        virtual_state.update(state=states[-1], time=t)
+        return VirtualPropagationResult(times=times, states=states, expect=expect)
 
 
 def list_get(lst, idx, default):

@@ -1,4 +1,4 @@
-from qutip import Qobj, lindblad_dissipator, liouvillian, mesolve, ptrace, spost, spre
+from qutip import Qobj, expect, lindblad_dissipator, liouvillian, mesolve, ptrace, spost, spre
 
 
 BackendOperator = Qobj
@@ -90,6 +90,14 @@ def solve_master_equation(H, rho0, tlist, c_ops=None, e_ops=None, options=None):
     return mesolve(H=H, rho0=rho0, tlist=tlist, c_ops=[] if c_ops is None else c_ops, e_ops=e_ops, options=options)
 
 
+def evaluate_expectation(e_op, time: float, state: BackendState):
+    if is_backend_object(e_op):
+        return expect(e_op, state)
+    if callable(e_op):
+        return e_op(time, state)
+    return expect(e_op, state)
+
+
 def state_from_array(array_like, dims) -> BackendState:
     return Qobj(array_like, dims=dims)
 
@@ -102,4 +110,3 @@ def with_square_dims(state: BackendState, dims) -> BackendState:
 
 def partial_trace(state: BackendState, select):
     return ptrace(state, select)
-
