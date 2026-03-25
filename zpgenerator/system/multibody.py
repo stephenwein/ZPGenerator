@@ -82,7 +82,7 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
     @property
     def states(self) -> dict:
         self._require_tensor_ready_subsystems("building multibody states")
-        if not self._states or any(state.shape[0] != self.subdims for state in self._states.values()):
+        if not self._states or any(state.shape[0] != self.dim for state in self._states.values()):
             if self._subsystems:
                 self._states = self._subsystems[0].states
                 for system in self._subsystems[1:]:
@@ -92,7 +92,7 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
     @property
     def operators(self) -> dict:
         self._require_tensor_ready_subsystems("building multibody operators")
-        if not self._operators or any(op.shape[0] != self.subdims for op in self._operators.values()):
+        if not self._operators or any(op.shape[0] != self.dim for op in self._operators.values()):
             self._operators = {}
             for i, system in enumerate(self._subsystems):
                 self._operators.update({k: tensor_insert(v, i, self.subdims) for k, v in system.operators.items()})

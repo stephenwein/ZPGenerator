@@ -122,6 +122,16 @@ def test_system_collection_evaluate():
     assert system.evaluate_quadruple(0, par).evaluate(0, par) == system.evaluate(0, par)
 
 
+def test_multibodysystem_reuses_cached_states_and_operators_when_dimensions_match():
+    system = _make_twobody_system()
+
+    states = system.states
+    operators = system.operators
+
+    assert system.states is states
+    assert system.operators is operators
+
+
 def test_system_base_init_empty():
     system = MultiBodyEmitter()
     assert system.bodies == 0
