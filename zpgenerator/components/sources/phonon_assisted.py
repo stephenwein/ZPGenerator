@@ -4,6 +4,7 @@ from ...dynamic import Control, Pulse
 from ...dynamic.operator.phonon_bath import Material, PhononBath
 from .base_source import GatedSourceComponent
 from typing import Union
+from copy import deepcopy
 
 
 class PhononAssistedSource(GatedSourceComponent):
@@ -29,18 +30,21 @@ class PhononAssistedSource(GatedSourceComponent):
                                   parameters=parameters)
 
         pulse = pulse if pulse else Pulse.gaussian(parameters=parameters)
+        pulse.rename_parameter('detuning', '_detuning')
 
         self.bath = PhononBath(material=material, temperature=temperature, resolution=resolution, max_power=max_power)
         self.bath.initialize()
 
-        emitter.add(Control.drive(pulse=pulse, transition=emitter.operators['lower']))
-
         tls = emitter.subsystems['emitter']
+        tls.add(Control.drive(pulse=pulse, transition=tls.operators['lower']))
         tls.add(self.bath.build_environment(pulse=pulse, transition=tls.operators['lower']))
 
         emitter.initial_state = emitter.states['|g>|0>']
 
-        gate = TimeInterval.source_gate(pulse, parameter_name='purcell_rate') if gate is None else gate
+        if gate is None:
+            gate_pulse = deepcopy(pulse)
+            gate_pulse.name = tls.name
+            gate = TimeInterval.source_gate(gate_pulse, parameter_name='purcell_rate')
 
         def purcell_timescale(args: dict):
             kappa = args['cavity/decay']
