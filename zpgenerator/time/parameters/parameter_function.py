@@ -8,7 +8,8 @@ class ParameterFunction:
     computed from one or more parameters from the input dictionary.
     """
 
-    def __init__(self, function: callable, parameters: dict = None, input_keys: list = None, output_keys: list = None):
+    def __init__(self, function: callable, parameters: dict = None, input_keys: list = None, output_keys: list = None,
+                 merge_mode: str = 'overwrite'):
         """
         :param function: a function of the form function(args: dict) -> dict
         :param parameters: a dictionary of default parameters used by the parameter function
@@ -17,6 +18,7 @@ class ParameterFunction:
         self.parameters = parameters if parameters else {}
         self.input_keys = input_keys if input_keys else list(self.parameters.keys())
         self.output_keys = output_keys if output_keys else list(self._function(self.parameters).keys())
+        self.merge_mode = merge_mode
 
     def function(self, parameters: Parameters):
         """
@@ -58,19 +60,41 @@ class ParameterFunction:
     @classmethod
     def rename(cls, name: str, new_name: str):
         return cls(lambda args: {name if k == new_name else k: v for k, v in args.items() if k != name},
-                   input_keys=[new_name], output_keys=[name])
+                   input_keys=[new_name], output_keys=[name], merge_mode='rename')
 
     @classmethod
     def overwrite(cls, function: callable, parameters: dict = None):
         func = lambda args: args | function(args)
         return cls(func, parameters=parameters, input_keys=list(parameters.keys()),
-                   output_keys=list(function(parameters).keys()))
+                   output_keys=list(function(parameters).keys()), merge_mode='overwrite')
 
     @classmethod
     def default(cls, function: callable, parameters: dict = None):
         func = lambda args: function(args) | args
         return cls(func, parameters=parameters, input_keys=list(parameters.keys()),
-                   output_keys=list(function(parameters).keys()))
+                   output_keys=list(function(parameters).keys()), merge_mode='default')
+
+    @classmethod
+    def insert(cls, function: callable, parameters: dict = None):
+        func = lambda args: function(args) | args
+        return cls(func, parameters=parameters, input_keys=list(parameters.keys()),
+                   output_keys=list(function(parameters).keys()), merge_mode='insert')
+
+    @classmethod
+    def error(cls, function: callable, parameters: dict = None):
+        def func(args: dict):
+            outputs = function(args)
+            conflicts = [key for key, value in outputs.items() if key in args and args[key] != value]
+            if conflicts:
+                raise ValueError(
+                    "Derived parameters conflict with existing values for: {keys}".format(
+                        keys=", ".join(sorted(conflicts))
+                    )
+                )
+            return args | outputs
+
+        return cls(func, parameters=parameters, input_keys=list(parameters.keys()),
+                   output_keys=list(function(parameters).keys()), merge_mode='error')
 
 
 class CompositeParameterFunction:

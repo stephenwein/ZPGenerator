@@ -1,6 +1,8 @@
 from zpgenerator.time.parameters.parameterized_object import *
 from zpgenerator.time.parameters.dictionary import Parameters
 from zpgenerator.time.parameters.collection import ParameterizedCollection
+from zpgenerator.dynamic import Pulse
+from zpgenerator.time import PulseBase
 from pytest import raises
 
 d = Parameters.DELIMITER
@@ -51,12 +53,24 @@ def test_set_parameter():
     assert alice.set_parameters({'age': 25}).dict == {'age': 25}
 
     assert alice.set_parameters({'Alice/age': 25}).user == {'age': 25}
-    assert alice.set_parameters({'*/age': 25}).user == {'age': 25}
     assert alice.set_parameters({'height': 165}).default == {'age': 27}
     assert alice.set_parameters({'height': 165}).user == {}
     assert alice.set_parameters({'age': 22, '_age': 26}).default == {'age': 26}
     assert alice.set_parameters({'age': 22, '_age': 26}).user == {'age': 22}
     assert alice.set_parameters({'age': 22, '_age': 26}).dict == {'age': 22}
+
+
+def test_parameter_key_scope_helpers():
+    assert Parameters.split_key('Alice/age') == ['Alice', 'age']
+    assert Parameters.head('Alice/age') == 'Alice'
+    assert Parameters.matches_name('Alice/age', 'Alice')
+    assert not Parameters.matches_name('Bob/age', 'Alice')
+    assert Parameters.is_wildcard_key('*/age')
+    assert Parameters.contains_wildcard('Smith/*/age')
+    assert not Parameters.is_wildcard_key('Alice/age')
+    assert Parameters.remove_name('Alice/age', 'Alice') == 'age'
+    assert Parameters.remove_name('*/age', 'Alice') == '*/age'
+    assert Parameters.remove_name('Bob/age', 'Alice') == 'Bob/age'
 
 
 def test_children():
@@ -88,10 +102,8 @@ def test_children():
     assert bob.set_parameters(smith_set).default == {'age': 25, 'height': 176}
     assert bob.set_parameters(smith_set).dict == {'age': 25, 'height': 176}
 
-    smith_set = smith.set_parameters({'age': 35})
-    assert smith_set.user == {'age': 35}
-    assert alice.set_parameters(smith_set).dict == {'age': 35}
-    assert bob.set_parameters(smith_set).dict == {'age': 35, 'height': 176}
+    with raises(ValueError, match="Ambiguous parameter 'age'"):
+        smith.set_parameters({'age': 35})
 
 
 def test_children_overwrite():
@@ -163,14 +175,21 @@ def test_rename():
     assert alice.set_parameters(smith.set_parameters({'Smith' + d + 'Alice' + d + 'heaviness': 50})).dict == \
            {'age': 27, 'weight': 50}
 
-    assert smith.set_parameters({'Smith' + d + '*' + d + 'age': 55}).dict == {'*/age': 55, 'Alice/weight': 66}
-    assert alice.set_parameters(smith.set_parameters({'Smith' + d + '*' + d + 'age': 55})).dict == {'age': 55,
-                                                                                                    'weight': 66}
-    assert bob.set_parameters(smith.set_parameters({'Smith' + d + '*' + d + 'age': 55})).dict == {'age': 55,
-                                                                                                  'height': 176}
+    with raises(ValueError, match="Wildcard parameter updates are not supported"):
+        smith.set_parameters({'Smith' + d + '*' + d + 'age': 55})
 
 
-def test_insert_parameter_function():
+def test_insert_parameter_function_fills_missing_values():
+    obj = ParameterizedObject(parameters={'age': 27, 'weight': 70, 'height': 180})
+    obj.create_insert_parameter_function(lambda args: {'bmi': args['weight'] / (args['height'] / 100) ** 2},
+                                         parameters={'weight': 80, 'height': 170})
+
+    assert obj.default_parameters == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.set_parameters().dict == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.set_parameters({'bmi': 20}).dict == {'age': 27, 'bmi': 20, 'height': 170, 'weight': 80}
+
+
+def test_insert_parameter_function_respects_child_defaults():
     obj = ParameterizedObject(parameters={'age': 27, 'weight': 70, 'height': 180})
     obj.add_child(ParameterizedObject(parameters={'bmi': 20}))
     assert obj.default_parameters == {'age': 27, 'bmi': 20, 'height': 180, 'weight': 70}
@@ -183,15 +202,15 @@ def test_insert_parameter_function():
     assert obj.local_default_parameters == {'age': 27, 'height': 170, 'weight': 80}
     assert obj._output_local_default_parameters == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
 
-    assert obj.default_parameters == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.default_parameters == {'age': 27, 'bmi': 20, 'height': 170, 'weight': 80}
 
     assert obj.set_parameters().user == {}
-    assert obj.set_parameters().dict == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.set_parameters().dict == {'age': 27, 'height': 170, 'weight': 80}
 
     assert obj.set_parameters({'bmi': 20}).user == {}
-    assert obj.set_parameters({'bmi': 20}).dict == {'age': 27, 'bmi': 27.68166089965398, 'height': 170, 'weight': 80}
+    assert obj.set_parameters({'bmi': 20}).dict == {'age': 27, 'bmi': 20, 'height': 170, 'weight': 80}
 
-    assert obj.set_parameters({'height': 160}).user == {'bmi': 31.249999999999993, 'height': 160}
+    assert obj.set_parameters({'height': 160}).user == {'height': 160}
     assert obj.set_parameters({'height': 160}).default == {'age': 27, 'weight': 80}
 
 
@@ -201,13 +220,13 @@ def test_default_parameter_function():
     assert obj.default_parameters == {'age': 27, 'bmi': 20, 'height': 180, 'weight': 70}
     obj.create_default_parameter_function(lambda args: {'bmi': args['weight'] / (args['height'] / 100) ** 2},
                                           parameters={'weight': 70, 'height': 180})
-    assert obj.default_parameters == {'age': 27, 'bmi': 21.604938271604937, 'height': 180, 'weight': 70}
+    assert obj.default_parameters == {'age': 27, 'bmi': 20, 'height': 180, 'weight': 70}
 
     assert obj.set_parameters({'bmi': 20}).default == {'age': 27, 'height': 180, 'weight': 70, 'bmi': 20}
     assert obj.set_parameters({'bmi': 20}).user == {}
 
     assert obj.set_parameters({'height': 160}).default == {'age': 27, 'weight': 70}
-    assert obj.set_parameters({'height': 160}).user == {'height': 160, 'bmi': 27.343749999999996}
+    assert obj.set_parameters({'height': 160}).user == {'height': 160}
 
 
 def test_overwrite_parameter_function():
@@ -231,6 +250,16 @@ def test_overwrite_parameter_function():
     assert obj.set_parameters({'current_year': 2024}).user == {'age': 34, 'current_year': 2024}
 
 
+def test_error_parameter_function_rejects_child_conflicts():
+    obj = ParameterizedObject(parameters={'weight': 70, 'height': 180})
+    obj.add_child(ParameterizedObject(parameters={'bmi': 20}))
+    obj.create_error_parameter_function(lambda args: {'bmi': args['weight'] / (args['height'] / 100) ** 2},
+                                        parameters={'weight': 70, 'height': 180})
+
+    with raises(ValueError, match="Derived parameter 'bmi' conflicts with an existing child value"):
+        _ = obj.default_parameters
+
+
 def test_parameterized_collection_rejects_invalid_object_type():
     collection = ParameterizedCollection()
 
@@ -249,3 +278,97 @@ def test_uses_parameter():
     assert smith.uses_parameter('weight')
     assert smith.uses_parameter('age')
     assert smith.uses_parameter('Alice' + d + 'age')
+
+
+def test_short_name_resolution_is_unique_or_explicit():
+    smith = ParameterizedObject(name='Smith')
+    alice = ParameterizedObject(parameters={'weight': 70}, name='Alice')
+    bob = ParameterizedObject(parameters={'height': 176}, name='Bob')
+    smith.add_child(alice)
+    smith.add_child(bob)
+
+    assert smith.set_parameters({'weight': 66}).user == {'Alice' + d + 'weight': 66}
+    assert smith.set_parameters({'height': 180}).user == {'Bob' + d + 'height': 180}
+
+
+def test_wildcard_parameter_updates_are_rejected():
+    alice = ParameterizedObject(parameters={'age': 27}, name='Alice')
+
+    with raises(ValueError, match="Wildcard parameter updates are not supported"):
+        alice.set_parameters({'*/age': 25})
+
+
+def test_parameter_candidates_and_resolution():
+    smith = ParameterizedObject(name='Smith')
+    alice = ParameterizedObject(parameters={'age': 27, 'weight': 70}, name='Alice')
+    bob = ParameterizedObject(parameters={'age': 25, 'height': 176}, name='Bob')
+    smith.add_child(alice)
+    smith.add_child(bob)
+
+    assert smith.parameter_candidates('age') == ['Alice/age', 'Bob/age']
+    assert smith.parameter_candidates('weight') == ['Alice/weight']
+    assert smith.parameter_candidates('Alice/age') == ['Alice/age']
+    assert smith.parameter_candidates('unknown') == []
+    assert smith.parameter_candidates('*/age') == ['Alice/age', 'Bob/age']
+    assert smith.parameter_candidates('Alice/*') == ['Alice/age', 'Alice/weight']
+    assert smith.parameter_candidates('*') == ['Alice/age', 'Alice/weight', 'Bob/age', 'Bob/height']
+
+    assert smith.resolve_parameter('weight') == 'Alice/weight'
+    assert smith.resolve_parameter('Alice/age') == 'Alice/age'
+    assert smith.resolve_parameter('unknown') == 'unknown'
+
+    with raises(ValueError, match="Ambiguous parameter 'age'"):
+        smith.resolve_parameter('age')
+
+    with raises(ValueError, match="Wildcard parameter updates are not supported"):
+        smith.resolve_parameter('*/age')
+
+
+def test_expand_parameter_returns_explicit_mapping():
+    smith = ParameterizedObject(name='Smith')
+    alice = ParameterizedObject(parameters={'age': 27, 'weight': 70}, name='Alice')
+    bob = ParameterizedObject(parameters={'age': 25, 'height': 176}, name='Bob')
+    smith.add_child(alice)
+    smith.add_child(bob)
+
+    assert smith.expand_parameter('weight', 66) == {'Alice/weight': 66}
+    assert smith.expand_parameter('Alice/age', 30) == {'Alice/age': 30}
+    assert smith.expand_parameter('*/age', 55) == {'Alice/age': 55, 'Bob/age': 55}
+
+    with raises(ValueError, match="Ambiguous parameter 'age'"):
+        smith.expand_parameter('age', 55)
+
+    with raises(ValueError, match="No parameters match query"):
+        smith.expand_parameter('*/unknown', 1)
+
+
+def test_expand_parameters_combines_multiple_entries():
+    smith = ParameterizedObject(name='Smith')
+    alice = ParameterizedObject(parameters={'age': 27, 'weight': 70}, name='Alice')
+    bob = ParameterizedObject(parameters={'age': 25, 'weight': 80}, name='Bob')
+    smith.add_child(alice)
+    smith.add_child(bob)
+
+    assert smith.expand_parameters({'*/weight': 50, 'Alice/age': 29}) == {
+        'Alice/age': 29,
+        'Alice/weight': 50,
+        'Bob/weight': 50,
+    }
+
+
+def test_nested_wildcard_queries_match_visible_parameter_space():
+    sequence = PulseBase(name='excitation')
+    subsequence = PulseBase(name='subsequence 1')
+    subsequence.add(Pulse.gaussian(parameters={'delay': 0}), name='pulse 1')
+    subsequence.add(Pulse.gaussian(parameters={'delay': 2}), name='pulse 2')
+    sequence.add(subsequence)
+
+    assert sequence.parameter_candidates('subsequence 1/*/width') == [
+        'subsequence 1/pulse 1/width',
+        'subsequence 1/pulse 2/width',
+    ]
+    assert sequence.parameter_candidates('excitation/*/width') == []
+    assert sequence.expand_parameters({'subsequence 1/*/width': 0.2}) == {
+        'subsequence 1/pulse 1/width': 0.2,
+        'subsequence 1/pulse 2/width': 0.2,
+    }

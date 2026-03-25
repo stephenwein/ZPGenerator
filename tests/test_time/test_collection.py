@@ -1,5 +1,6 @@
 from zpgenerator.time.parameters.collection import *
 from zpgenerator.time.parameters import Parameters
+from pytest import raises
 
 d = Parameters.DELIMITER
 
@@ -20,7 +21,8 @@ def test_collection_add_objects():
     assert len(coll._children.children)== 1
     coll.add(ParameterizedObject(parameters={'age': 27}, name='Alice'))
     assert coll.parameters == ['Alice' + d + 'age', 'Bob' + d + 'age']
-    assert coll.parameter_tree({'age': 23}) == {'Alice': {'age': 23}, 'Bob': {'age': 23}}
+    with raises(ValueError, match="Ambiguous parameter 'age'"):
+        coll.parameter_tree({'age': 23})
 
 
 def test_collection_add_direct():
