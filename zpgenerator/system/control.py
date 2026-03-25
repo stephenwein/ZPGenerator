@@ -1,8 +1,23 @@
 from ..time import OperatorInputList, CompositeTimeOperator, sum_flatten
 from ..time.evaluate.quadruple import EvaluatedQuadruple
+from ..time.evaluate.dirac import EvaluatedDiracOperator
 from .quantum import SystemCollection
 from .natural import NaturalSystem, HamiltonianBase, EnvironmentBase
 from typing import Union, List
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class EvaluatedControl:
+    continuous: EvaluatedQuadruple
+    instantaneous: EvaluatedDiracOperator
+
+
+def combine_evaluated_controls(controls: List["EvaluatedControl"]) -> "EvaluatedControl":
+    return EvaluatedControl(
+        continuous=sum((control.continuous for control in controls), EvaluatedQuadruple()),
+        instantaneous=sum((control.instantaneous for control in controls), EvaluatedDiracOperator()),
+    )
 
 
 class ChannelBase(CompositeTimeOperator):
@@ -18,7 +33,8 @@ class ChannelBase(CompositeTimeOperator):
 
     def _check_objects(self):
         super()._check_objects()
-        assert all(not op.has_interval for op in self._objects), "Operators must be instant."
+        if not all(not op.has_interval for op in self._objects):
+            raise ValueError("Operators must be instant.")
 
     def is_nonhermitian_time_dependent(self, t: float, parameters: dict = None):
         return self.is_super and self.is_time_dependent(t, self.set_parameters(parameters))
@@ -46,22 +62,30 @@ class ControlBase(NaturalSystem):
         super().__init__(hamiltonian=hamiltonian, environment=environment, parameters=parameters, name=name,
                          types=[HamiltonianBase, EnvironmentBase, ChannelBase] if types is None else types)
 
-        self._objects.append(self.channel)
+        self._sync_objects()
         self._check_objects()
 
     def _check_objects(self):
         super()._check_objects()
         if self.channel.subdims and self.hamiltonian.subdims:
-            assert self.channel.subdims == self.hamiltonian.subdims, \
-                "Channel and HamiltonianBase must share the same dimensions"
+            if self.channel.subdims != self.hamiltonian.subdims:
+                raise ValueError("Channel and HamiltonianBase must share the same dimensions")
         if self.channel.subdims and self.environment.subdims:
-            assert self.channel.subdims == self.environment.subdims, \
-                "Channel and EnvironmentBase must share the same dimensions"
+            if self.channel.subdims != self.environment.subdims:
+                raise ValueError("Channel and EnvironmentBase must share the same dimensions")
     @property
     def subdims(self):
         return self.hamiltonian.subdims if self.hamiltonian.operators \
             else self.environment.subdims if self.environment.subdims \
             else self.channel.subdims
+
+    @property
+    def objects(self):
+        return [self.hamiltonian, self.environment, self.channel]
+
+    def _sync_objects(self):
+        self._objects = self.objects
+        self.set_children(self._objects)
 
     def _add(self, control, parameters: dict = None, name: str = None):
         if isinstance(control, HamiltonianBase):
@@ -71,9 +95,17 @@ class ControlBase(NaturalSystem):
         elif isinstance(control, ChannelBase):
             self.channel.add(control, parameters, name)
 
-    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+    def evaluate_control(self, t: float, parameters: dict = None) -> EvaluatedControl:
         parameters = self.set_parameters(parameters)
-        return self.hamiltonian.evaluate_quadruple(t, parameters) + self.environment.evaluate_quadruple(t, parameters)
+        continuous, instantaneous = self.evaluate_natural_dynamics(t, parameters)
+        instantaneous = instantaneous + self.channel.evaluate_dirac(t, parameters)
+        return EvaluatedControl(continuous=continuous, instantaneous=instantaneous)
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        return self.evaluate_control(t, parameters).continuous
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        return self.evaluate_control(t, parameters).instantaneous
 
 
 class CompositeControl(SystemCollection):
@@ -88,6 +120,16 @@ class CompositeControl(SystemCollection):
                  types: list = None):
         super().__init__(systems=systems, parameters=parameters, name=name, rule=sum_flatten,
                          types=[ControlBase, CompositeControl] if types is None else types)
+
+    def evaluate_control(self, t: float, parameters: dict = None) -> EvaluatedControl:
+        parameters = self.set_parameters(parameters)
+        return combine_evaluated_controls([system.evaluate_control(t, parameters) for system in self._objects])
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        return self.evaluate_control(t, parameters).continuous
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        return self.evaluate_control(t, parameters).instantaneous
 
 
 class ControlledSystem(NaturalSystem):
@@ -121,18 +163,41 @@ class ControlledSystem(NaturalSystem):
 
         super().__init__(hamiltonian=hamiltonian, environment=environment, states=states, operators=operators,
                          parameters=parameters, name=name,
-                         types=[HamiltonianBase, EnvironmentBase, ChannelBase, ControlBase] if types is None else types)
+                         types=[HamiltonianBase, EnvironmentBase, ChannelBase, ControlBase, CompositeControl]
+                         if types is None else types)
 
-        self._objects.append(self.control)
+        self._sync_objects()
         self._check_objects()
 
     def _check_objects(self):
         super()._check_objects()
         if self.control.operator_list:
-            assert self.subdims == self.control.subdims, "Controls must share the same dimensions as the HamiltonianBase"
+            if self.subdims != self.control.subdims:
+                raise ValueError("Controls must share the same dimensions as the HamiltonianBase")
+
+    @property
+    def objects(self):
+        return [self.hamiltonian, self.environment, self.control]
+
+    def _sync_objects(self):
+        self._objects = self.objects
+        self.set_children(self._objects)
 
     def _add(self, operator: Union[HamiltonianBase, EnvironmentBase, ControlBase, CompositeControl],
              parameters: dict = None, name: str = None):
         super()._add(operator, parameters, name)
-        if isinstance(operator, ControlBase):
+        if isinstance(operator, (ControlBase, CompositeControl)):
             self.control.add(operator, parameters, name)
+
+    def evaluate_control(self, t: float, parameters: dict = None) -> EvaluatedControl:
+        return self.control.evaluate_control(t, self.set_parameters(parameters))
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        parameters = self.set_parameters(parameters)
+        natural, _ = self.evaluate_natural_dynamics(t, parameters)
+        return natural + self.evaluate_control(t, parameters).continuous
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        parameters = self.set_parameters(parameters)
+        _, natural = self.evaluate_natural_dynamics(t, parameters)
+        return natural + self.evaluate_control(t, parameters).instantaneous

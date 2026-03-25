@@ -2,6 +2,7 @@ from zpgenerator.time.evaluate import *
 from qutip import destroy, create, qeye, tensor, qzero, num
 from numpy import cos, sin
 from tests_assertions import assert_empty_qobj
+import pytest
 
 
 def test_func():
@@ -232,11 +233,16 @@ def test_evop_methods():
     assert op2.element(1, 0)(2) == 4
     assert op2.element(1, 1)(2) == 2
 
-    op2 = op.element(1, 0) * op1
-    assert op2.element(0, 0)(2) == 2
-    assert op2.element(0, 1)(2) == 0
-    assert op2.element(1, 0)(2) == 4
-    assert op2.element(1, 1)(2) == 2
+
+def test_evop_reshape_rejects_inconsistent_dims():
+    op = EvaluatedOperator(constant=destroy(2))
+    with pytest.raises(ValueError, match="Subdimension product must match the total dimension."):
+        op.reshape([3])
+
+
+def test_evop_mv_rejects_dimension_mismatch():
+    with pytest.raises(ValueError, match="Matrix dimensions must match vector length"):
+        evop_mv(EvaluatedOperator.id(2), [EvaluatedOperator.id(2)])
 
 
 def test_evop_tensor():

@@ -73,9 +73,11 @@ class Operator(ParameterizedObject, AOperator):
 
     def _check_operator(self):
         test = self.evaluate()
-        assert isinstance(test, Qobj), "Must evaluate to a Qobj"
+        if not isinstance(test, Qobj):
+            raise TypeError("Must evaluate to a Qobj")
         shape = test.shape
-        assert shape[0] == shape[1], "Must be square."
+        if shape[0] != shape[1]:
+            raise ValueError("Must be square.")
         self._is_super = test.issuper
         self._dim = shape[0]
         self._subdims = test.dims[0][0] if self._is_super else test.dims[0]
@@ -177,11 +179,11 @@ class CompositeOperator(AOperatorCollection):
     def _check_objects(self):
         self._check_keys()
         if self._objects:
-            assert all(operator.subdims == self._objects[0].subdims for operator in self._objects), \
-                "All operators must share dimensions"
+            if not all(operator.subdims == self._objects[0].subdims for operator in self._objects):
+                raise ValueError("All operators must share dimensions")
         if self._objects:
-            assert all(operator.is_super == self._objects[0].is_super for operator in self._objects), \
-                "All operators must share is_super."
+            if not all(operator.is_super == self._objects[0].is_super for operator in self._objects):
+                raise ValueError("All operators must share is_super.")
 
     @property
     def is_super(self) -> bool:

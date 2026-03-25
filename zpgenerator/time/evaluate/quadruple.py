@@ -2,7 +2,8 @@ from .operator import EvaluatedOperator, evop_mv, evop_umv
 from typing import List
 from qutip import qzero, qeye, Qobj as _Qobj, liouvillian
 from copy import deepcopy
-from .dims import qzero_or_empty, qeye_or_empty
+from .dims import qzero_or_empty, qeye_or_empty, canonical_dim_list
+from functools import reduce
 
 
 class EvaluatedQuadruple:
@@ -19,16 +20,7 @@ class EvaluatedQuadruple:
         self.hamiltonian = EvaluatedOperator() if hamiltonian is None else hamiltonian
         self.environment = [] if environment is None else environment
         self.transitions = [] if transitions is None else transitions
-
-        if hamiltonian:
-            self._subdims = hamiltonian.subdims
-        else:
-            if self.environment:
-                self._subdims = self.environment[0].subdims
-            elif self.transitions and isinstance(self.transitions[0], EvaluatedOperator):
-                self._subdims = self.transitions[0].subdims
-            else:
-                self._subdims = [0]
+        self._subdims = _infer_quadruple_subdims(self.hamiltonian, self.environment, self.transitions)
 
         if not self.transitions and scatterer is not None:
             if not (isinstance(scatterer, EvaluatedOperator) and scatterer._is_empty_operator()):
@@ -40,9 +32,9 @@ class EvaluatedQuadruple:
         else:
             self.scatterer = scatterer
 
-        if self.modes > 0:
-            assert self.modes == self.scatterer.dim, \
-                "Scattering matrices must have a dimension matching the number of modes"
+        _validate_quadruple_dims(self.hamiltonian, self.environment, self.transitions, self._subdims)
+        if self.modes > 0 and self.modes != self.scatterer.dim:
+            raise ValueError("Scattering matrices must have a dimension matching the number of modes")
 
     @property
     def modes(self):
@@ -68,10 +60,7 @@ class EvaluatedQuadruple:
         if other == 0:
             return self
         else:
-            return EvaluatedQuadruple(hamiltonian=self.hamiltonian + other.hamiltonian,
-                                      environment=self.environment + other.environment,
-                                      transitions=self.transitions + other.transitions,
-                                      scatterer=self.scatterer.concatenate(other.scatterer))
+            return self.concatenate(other)
 
     def __radd__(self, other):
         if other == 0:
@@ -79,65 +68,77 @@ class EvaluatedQuadruple:
         else:
             return self.__add__(other)
 
+    def concatenate(self, other: "EvaluatedQuadruple") -> "EvaluatedQuadruple":
+        """
+        Parallel composition of independently addressed channels and systems.
+        This concatenates output modes while summing local generators.
+        """
+        return EvaluatedQuadruple(hamiltonian=self.hamiltonian + other.hamiltonian,
+                                  environment=self.environment + other.environment,
+                                  transitions=self.transitions + other.transitions,
+                                  scatterer=self.scatterer.concatenate(other.scatterer))
+
     # cascaded quantum coupling (https://www.tandfonline.com/doi/full/10.1080/23746149.2017.1343097)
     def __mul__(self, other):
         if other == 1:
             return self
         else:
-            assert self.modes == other.modes, "Components must have the same number of modes."
-            subdims = [self.subdims, other.subdims]
-
-            scatterer = other.scatterer
-
-            self_vector = [trn.tensor_insert(0, subdims) for trn in self.transitions]
-            other_vector = [trn.tensor_insert(1, subdims) for trn in other.transitions]
-            for vec in self_vector + other_vector:
-                vec.reshape()
-
-            hamiltonian = self.hamiltonian.tensor_insert(0, subdims) + other.hamiltonian.tensor_insert(1, subdims)
-
-            environment = [env.tensor_insert(0, subdims) for env in self.environment] + \
-                          [env.tensor_insert(1, subdims) for env in other.environment]
-
-            transitions = evop_mv(scatterer, self_vector)
-            transitions = [transitions[i] + other_vector[i] for i in range(0, len(transitions))]
-
-            # Quantum cascaded interaction superoperator
-            if (not any(_is_trivial_evop(v) for v in other_vector)) and \
-                    (not any(_is_trivial_evop(v) for v in self_vector)):
-                # for v in other_vector:
-                #     print(v.constant)
-                #     for pair in v.variable:
-                #         print(pair.op)
-                LRB = [v.dag().spost() - v.dag().spre() for v in other_vector]
-                RLB = [v.spre() - v.spost() for v in other_vector]
-                environment += [evop_umv(LRB, scatterer, [v.spre() for v in self_vector]) +
-                                evop_umv(RLB, scatterer.dag(), [v.dag().spost() for v in self_vector])]
-
-            # reshape() takes subdims with unit dimensions: [1, 2, 1] and changes it to [2]
-            hamiltonian.reshape()
-            for env in environment:
-                env.reshape()
-            environment = [env for env in environment if not _is_zero_evop(env)]
-            for trn in transitions:
-                trn.reshape()
-
-            cascaded_scatterer = other.scatterer * self.scatterer
-            if not isinstance(cascaded_scatterer, EvaluatedOperator):
-                cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant,
-                                                       variable=cascaded_scatterer.variable)
-            if not isinstance(cascaded_scatterer.constant, _Qobj):
-                cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant * qeye_or_empty(self.modes),
-                                                       variable=cascaded_scatterer.variable)
-
-            return EvaluatedQuadruple(hamiltonian=hamiltonian, environment=environment,
-                                      transitions=transitions, scatterer=cascaded_scatterer)
+            return self.series_product(other)
 
     def __rmul__(self, other):
         if other == 1:
             return self
         else:
-            assert False, "Cannot cascade backwards"
+            raise TypeError("Cannot cascade backwards")
+
+    def series_product(self, other: "EvaluatedQuadruple") -> "EvaluatedQuadruple":
+        """
+        Cascaded / series composition with matching channel count.
+        `self` feeds into `other`, so the resulting scatterer is `other * self`.
+        """
+        if self.modes != other.modes:
+            raise ValueError("Components must have the same number of modes.")
+
+        subdims = [self.subdims, other.subdims]
+        scatterer = other.scatterer
+
+        self_vector = [trn.tensor_insert(0, subdims) for trn in self.transitions]
+        other_vector = [trn.tensor_insert(1, subdims) for trn in other.transitions]
+        for vec in self_vector + other_vector:
+            vec.reshape()
+
+        hamiltonian = self.hamiltonian.tensor_insert(0, subdims) + other.hamiltonian.tensor_insert(1, subdims)
+
+        environment = [env.tensor_insert(0, subdims) for env in self.environment] + \
+                      [env.tensor_insert(1, subdims) for env in other.environment]
+
+        transitions = evop_mv(scatterer, self_vector)
+        transitions = [transitions[i] + other_vector[i] for i in range(0, len(transitions))]
+
+        if (not any(_is_trivial_evop(v) for v in other_vector)) and \
+                (not any(_is_trivial_evop(v) for v in self_vector)):
+            LRB = [v.dag().spost() - v.dag().spre() for v in other_vector]
+            RLB = [v.spre() - v.spost() for v in other_vector]
+            environment += [evop_umv(LRB, scatterer, [v.spre() for v in self_vector]) +
+                            evop_umv(RLB, scatterer.dag(), [v.dag().spost() for v in self_vector])]
+
+        hamiltonian.reshape()
+        for env in environment:
+            env.reshape()
+        environment = [env for env in environment if not _is_zero_evop(env)]
+        for trn in transitions:
+            trn.reshape()
+
+        cascaded_scatterer = other.scatterer * self.scatterer
+        if not isinstance(cascaded_scatterer, EvaluatedOperator):
+            cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant,
+                                                   variable=cascaded_scatterer.variable)
+        if not isinstance(cascaded_scatterer.constant, _Qobj):
+            cascaded_scatterer = EvaluatedOperator(constant=cascaded_scatterer.constant * qeye_or_empty(self.modes),
+                                                   variable=cascaded_scatterer.variable)
+
+        return EvaluatedQuadruple(hamiltonian=hamiltonian, environment=environment,
+                                  transitions=transitions, scatterer=cascaded_scatterer)
 
 
     def evaluate(self, t: float, parameters: dict = None) -> _Qobj:
@@ -172,6 +173,41 @@ def _is_zero_evop(evop: EvaluatedOperator) -> bool:
     return not evop.variable and isinstance(evop.constant, _Qobj) and evop.constant == 0 * evop.constant
 
 
+def _has_concrete_subdims(evop: EvaluatedOperator) -> bool:
+    return isinstance(evop, EvaluatedOperator) and not evop._is_empty_operator()
+
+
+def _evop_subdims(evop: EvaluatedOperator):
+    return canonical_dim_list(evop.subdims)
+
+
+def _infer_quadruple_subdims(hamiltonian: EvaluatedOperator,
+                             environment: List[EvaluatedOperator],
+                             transitions: List[EvaluatedOperator]):
+    candidates = []
+    if _has_concrete_subdims(hamiltonian):
+        candidates.append(_evop_subdims(hamiltonian))
+    candidates.extend(_evop_subdims(env) for env in environment if _has_concrete_subdims(env))
+    candidates.extend(_evop_subdims(trn) for trn in transitions if _has_concrete_subdims(trn))
+    return candidates[0] if candidates else [0]
+
+
+def _validate_quadruple_dims(hamiltonian: EvaluatedOperator,
+                             environment: List[EvaluatedOperator],
+                             transitions: List[EvaluatedOperator],
+                             expected_subdims: List[int]):
+    if expected_subdims == [0]:
+        return
+    expected = canonical_dim_list(expected_subdims)
+    candidates = []
+    if _has_concrete_subdims(hamiltonian):
+        candidates.append(_evop_subdims(hamiltonian))
+    candidates.extend(_evop_subdims(env) for env in environment if _has_concrete_subdims(env))
+    candidates.extend(_evop_subdims(trn) for trn in transitions if _has_concrete_subdims(trn))
+    if any(candidate != expected for candidate in candidates):
+        raise ValueError("Hamiltonian, environment, and transitions must share the same dimensions")
+
+
 def _is_trivial_evop(evop: EvaluatedOperator) -> bool:
     if evop.variable or not isinstance(evop.constant, _Qobj):
         return False
@@ -182,3 +218,17 @@ def _is_trivial_evop(evop: EvaluatedOperator) -> bool:
 
 # Keep Qobj available for wildcard imports used in tests.
 Qobj = _Qobj
+
+
+def concatenate_quadruples(quadruples: List[EvaluatedQuadruple],
+                           default: EvaluatedQuadruple = None) -> EvaluatedQuadruple:
+    default = EvaluatedQuadruple() if default is None else default
+    return reduce(lambda left, right: left.concatenate(right), quadruples, default)
+
+
+def series_product_quadruples(quadruples: List[EvaluatedQuadruple],
+                              default: EvaluatedQuadruple = None) -> EvaluatedQuadruple:
+    default = EvaluatedQuadruple() if default is None else default
+    if not quadruples:
+        return default
+    return reduce(lambda left, right: left.series_product(right), quadruples[1:], quadruples[0])

@@ -4,6 +4,7 @@ from numpy import sin, cos, pi
 from qutip import create, destroy, qeye, tensor, num, spre, spost, lindblad_dissipator
 from zpgenerator.time.parameters import Parameters
 from tests_assertions import assert_empty_qobj
+import pytest
 
 d = Parameters.DELIMITER
 
@@ -120,6 +121,17 @@ def test_evaluatequad_add():
                                            [destroy(3)] * 3)
 
 
+def test_evaluatequad_concatenate():
+    quad0 = make_full_quad(3, 1)
+    quad1 = make_full_quad(3, 2)
+    quad1.scatterer.constant = Qobj([[1, 1], [1, 1]])
+    quad = quad0.concatenate(quad1)
+    assert quad.subdims == [3]
+    assert quad.hamiltonian.evaluate(0) == 2 * create(3) * destroy(3)
+    assert quad.modes == 3
+    assert quad.scatterer.constant == Qobj([[1, 0, 0], [0, 1, 1], [0, 1, 1]])
+
+
 def test_quad_pad():
     quad = make_full_quad(3, 2)
     quad.pad(3)
@@ -168,6 +180,41 @@ def test_quad_cascaded_mul_constant():
     expected = liouvillian(ham_expected, c_ops=[op for op in c_ops_expected if op.isoper]) + \
                sum([op for op in c_ops_expected if op.issuper])
     assert quad2.evaluate(0) == expected
+
+
+def test_quad_series_product_matches_mul():
+    quad0 = make_full_quad(2, 2)
+    quad1 = make_full_quad(3, 2)
+    via_op = quad0 * quad1
+    via_method = quad0.series_product(quad1)
+    assert via_method.hamiltonian.evaluate(0) == via_op.hamiltonian.evaluate(0)
+    assert [env.evaluate(0) for env in via_method.environment] == [env.evaluate(0) for env in via_op.environment]
+    assert [trn.evaluate(0) for trn in via_method.transitions] == [trn.evaluate(0) for trn in via_op.transitions]
+    assert via_method.scatterer.evaluate(0) == via_op.scatterer.evaluate(0)
+
+
+def test_quad_series_product_requires_equal_modes():
+    quad0 = make_full_quad(2, 1)
+    quad1 = make_full_quad(2, 2)
+    with pytest.raises(ValueError, match="same number of modes"):
+        quad0.series_product(quad1)
+
+
+def test_evaluatequad_rejects_dimension_mismatch_between_hamiltonian_and_environment():
+    with pytest.raises(ValueError, match="share the same dimensions"):
+        EvaluatedQuadruple(
+            hamiltonian=EvaluatedOperator(constant=destroy(2)),
+            environment=[EvaluatedOperator(constant=destroy(3))],
+        )
+
+
+def test_evaluatequad_rejects_dimension_mismatch_between_environment_and_transitions():
+    with pytest.raises(ValueError, match="share the same dimensions"):
+        EvaluatedQuadruple(
+            environment=[EvaluatedOperator(constant=destroy(2))],
+            transitions=[EvaluatedOperator(constant=destroy(3))],
+            scatterer=EvaluatedOperator(constant=qeye(1)),
+        )
 
 
 def test_quad_cascaded_mul_variable():

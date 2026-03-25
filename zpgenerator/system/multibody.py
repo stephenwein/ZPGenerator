@@ -43,6 +43,7 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
         self._subsystems = []
         super().__init__(systems=[], parameters=parameters, name=name, rule=sum_tensor,
                          types=types if types else [AQuantumSystem])
+        self._sync_objects()
         if subsystems:
             self.add(subsystems)
 
@@ -53,12 +54,35 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
         self._check_keys()
 
     def _check_add(self, system, parameters: dict = None, name: str = None):
-        self._subsystems.append(system)
-        return system
+        return super(SystemCollection, self)._check_add(system, parameters, name)
+
+    @property
+    def objects(self):
+        return self._subsystems
+
+    def _sync_objects(self):
+        self._objects = self._subsystems
+        self.set_children([self._objects])
+
+    def _add(self, system, parameters: dict = None, name: str = None):
+        self._subsystems.append(self._check_add(system, parameters, name))
+        self._sync_objects()
+
+    @staticmethod
+    def _subsystem_label(system, index: int) -> str:
+        return system.name if getattr(system, 'name', None) else f"subsystem {index}"
+
+    def _require_tensor_ready_subsystems(self, action: str):
+        for i, system in enumerate(self._subsystems):
+            if system.dim is None or system.subdims is None:
+                raise ValueError(
+                    f"Subsystem '{self._subsystem_label(system, i)}' must define dim and subdims before {action}"
+                )
 
     @property
     def states(self) -> dict:
-        if not self._states or any(state.shape[0] != self.subdims for state in self._states.values()):
+        self._require_tensor_ready_subsystems("building multibody states")
+        if not self._states or any(state.shape[0] != self.dim for state in self._states.values()):
             if self._subsystems:
                 self._states = self._subsystems[0].states
                 for system in self._subsystems[1:]:
@@ -67,7 +91,8 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
 
     @property
     def operators(self) -> dict:
-        if not self._operators or any(op.shape[0] != self.subdims for op in self._operators.values()):
+        self._require_tensor_ready_subsystems("building multibody operators")
+        if not self._operators or any(op.shape[0] != self.dim for op in self._operators.values()):
             self._operators = {}
             for i, system in enumerate(self._subsystems):
                 self._operators.update({k: tensor_insert(v, i, self.subdims) for k, v in system.operators.items()})
@@ -104,14 +129,17 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
 
     @property
     def dim(self) -> int:
+        self._require_tensor_ready_subsystems("computing multibody dimensions")
         return prod(system.dim for system in self._subsystems) if self._subsystems else None
 
     @property
     def subdims(self) -> list:
+        self._require_tensor_ready_subsystems("computing multibody dimensions")
         dimset = [system.subdims for system in self._subsystems]
         return [dim for dims in dimset for dim in dims] if self._subsystems else None
 
     def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        self._require_tensor_ready_subsystems("evaluating multibody dynamics")
         parameters = self.set_parameters(parameters)
         return self._rule([system.evaluate_quadruple(t, parameters) for system in self._subsystems],
                           EvaluatedQuadruple())
@@ -120,6 +148,7 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
         return [self.evaluate_quadruple(t, parameters)]
 
     def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        self._require_tensor_ready_subsystems("evaluating multibody dynamics")
         parameters = self.set_parameters(parameters)
         return self._rule(id_flatten([op.evaluate_dirac(t, parameters) for op in self._subsystems]),
                           EvaluatedDiracOperator())
@@ -142,8 +171,7 @@ class MultiBodyEmitter(MultiBodyEmitterBase):
         self.coupling = CouplingBase()
         self.control = CompositeControl()
         super().__init__(states=states, operators=operators, parameters=parameters, name=name, types=types)
-        self._objects.append(self.coupling)
-        self._objects.append(self.control)
+        self._sync_objects()
         if subsystems:
             for system in subsystems:
                 self.add(system)
@@ -155,13 +183,16 @@ class MultiBodyEmitter(MultiBodyEmitterBase):
 
     def _check_objects(self):
         super()._check_objects()
-        if self._objects and self.coupling.subdims:
-            assert self.subdims == self.coupling.subdims, \
-                "Coupling dimensions must match the dimensions of the coupled systems."
+        if self._subsystems and self.coupling.subdims:
+            if self.subdims != self.coupling.subdims:
+                raise ValueError("Coupling dimensions must match the dimensions of the coupled systems.")
 
     def _check_add(self, system, parameters: dict = None, name: str = None):
-        self._subsystems.append(system)
-        return system
+        return super(SystemCollection, self)._check_add(system, parameters, name)
+
+    def _sync_objects(self):
+        self._objects = self._subsystems + [self.coupling, self.control]
+        self.set_children([self._subsystems, self.coupling, self.control])
 
     def _add(self, system, parameters: dict = None, name: str = None):
         if isinstance(system, CouplingTerm) or isinstance(system, CouplingBase):
@@ -169,17 +200,20 @@ class MultiBodyEmitter(MultiBodyEmitterBase):
         elif isinstance(system, ControlBase):
             self.control.add(system, parameters, name)
         else:
-            super()._add(system, parameters, name)
+            self._subsystems.append(self._check_add(system, parameters, name))
             self._extend_space(system.subdims)
+        self._sync_objects()
 
     def _extend_space(self, subdims):
         self.coupling.pad_right(subdims)
 
     def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        parameters = self.set_parameters(parameters)
+        control = self.control.evaluate_control(t, parameters)
         return super().evaluate_quadruple(t, parameters) + \
-            self.coupling.evaluate_quadruple(t, self.set_parameters(parameters)) + \
-            self.control.evaluate_quadruple(t, self.set_parameters(parameters))
+            self.coupling.evaluate_quadruple(t, parameters) + \
+            control.continuous
 
     def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
         parameters = self.set_parameters(parameters)
-        return super().evaluate_dirac(t, parameters) + self.control.evaluate_dirac(t, self.set_parameters(parameters))
+        return super().evaluate_dirac(t, parameters) + self.control.evaluate_control(t, parameters).instantaneous

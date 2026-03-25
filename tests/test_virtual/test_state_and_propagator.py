@@ -4,6 +4,7 @@ from zpgenerator.time import OpFuncPair, Func
 from qutip import Qobj, fock, create, destroy, num, fidelity, liouvillian, sprepost
 from numpy import pi, exp, sqrt, log
 from math import isclose
+import pytest
 
 sigmaX = create(2) + destroy(2)
 
@@ -67,3 +68,24 @@ def test_state_jumps_unnormalised():
     vprop = VPropTI(generator=liouvillian(0 * sigmaX, c_ops=[destroy(2)]), jumps=jumps)
     vprop.propagate(vstate, t=log(2))
     assert vstate == Qobj([[0, 0], [0, 0.25]])
+
+
+def test_vpropti_supports_expectation_sampling():
+    vstate = VState(state=fock(2, 1), time=0)
+    vprop = VPropTI(generator=liouvillian(0 * sigmaX, c_ops=[destroy(2)]), expect_operators=[num(2)])
+
+    result = vprop.propagate(vstate, t=1, tlist=[0, 0.5, 1])
+
+    assert result.times == [0, 0.5, 1]
+    assert len(result.states) == 3
+    assert len(result.expect) == 1
+    assert result.expect[0][0] == 1
+    assert isclose(result.expect[0][-1], exp(-1), rel_tol=1e-7)
+
+
+def test_vpropti_rejects_backwards_tlist():
+    vstate = VState(state=fock(2, 1), time=0)
+    vprop = VPropTI(generator=liouvillian(0 * sigmaX, c_ops=[destroy(2)]))
+
+    with pytest.raises(ValueError, match="non-decreasing"):
+        vprop.propagate(vstate, t=1, tlist=[0, 0.5, 0.25, 1])

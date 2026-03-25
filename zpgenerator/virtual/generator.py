@@ -2,6 +2,8 @@ from ..system import AElement
 from ..network import Component, AComponent
 from .propagator import VPropNHTD, VPropHTD, VPropTI
 from .solver_options import default_virtual_solver_options, mesolve_options
+from dataclasses import dataclass
+from enum import Enum
 
 
 class Generator:
@@ -16,6 +18,23 @@ class Generator:
         self.binned_detectors = self.component.output.binned_detectors if binned_detectors is None else binned_detectors
 
     def build_propagator(self, t: float, parameters: dict = None, options: dict = None):
+        plan = self.build_plan(t=t, parameters=parameters, options=options)
+        if plan.mode is PropagatorMode.NONHERMITIAN_TIME_DEPENDENT:
+            return VPropNHTD(generator=plan.generator,
+                            jumps=plan.jumps,
+                            expect_operators=plan.expect_operators,
+                            options=plan.options)
+        if plan.mode is PropagatorMode.HERMITIAN_TIME_DEPENDENT:
+            return VPropHTD(hamiltonian=plan.hamiltonian,
+                            collapse_operators=plan.collapse_operators,
+                            jumps=plan.jumps,
+                            expect_operators=plan.expect_operators,
+                            options=plan.options)
+        return VPropTI(generator=plan.generator,
+                       jumps=plan.jumps,
+                       expect_operators=plan.expect_operators)
+
+    def build_plan(self, t: float, parameters: dict = None, options: dict = None) -> "PropagatorPlan":
         options = self.default_options if options is None else options
         options = mesolve_options(options, force_unnormalized=True)
 
@@ -38,33 +57,39 @@ class Generator:
                      transitions[time_bin.mode].jump()
                      for time_bin in time_bins) for time_bins in self.binned_detectors.values()]
 
-        if use_fourier_nhtd:
-            generator = hamiltonian.liou() + sum(env.lind() if not env.is_super else env for env in environment)
-            return VPropNHTD(generator=generator,
-                            jumps=jumps,
-                            expect_operators=expect_operator,
-                            options=options)
+        time_dependent = self.component.is_time_dependent(t, parameters) or population is not None
+        nonhermitian_time_dependent = self.component.is_nonhermitian_time_dependent(t, parameters)
 
-        if self.component.is_time_dependent(t, parameters) or population is not None:
-            if self.component.is_nonhermitian_time_dependent(t, parameters):
-                generator = hamiltonian.liou() + sum(env.lind() if not env.is_super else env for env in environment)
-                return VPropNHTD(generator=generator,
-                                 jumps=jumps,
-                                 expect_operators=expect_operator,
-                                 options=options)
-            else:
-                return VPropHTD(hamiltonian=hamiltonian.list_form(),
-                                collapse_operators=[env.list_form() for env in environment],
-                                jumps=[jump.constant for jump in jumps],
-                                expect_operators=expect_operator,
-                                options=options)
-        else:
-            #  Add TI method eventually
-            return VPropHTD(hamiltonian=hamiltonian.list_form(),
-                            collapse_operators=[env.list_form() for env in environment],
-                            jumps=[jump.constant for jump in jumps],
-                            expect_operators=expect_operator,
-                            options=options)
+        liouvillian_generator = hamiltonian.liou() + sum(env.lind() if not env.is_super else env for env in environment)
+        htd_hamiltonian = hamiltonian.list_form()
+        htd_collapse_operators = [env.list_form() for env in environment]
+        ti_jumps = [jump.constant for jump in jumps]
+
+        if use_fourier_nhtd:
+            return PropagatorPlan(mode=PropagatorMode.NONHERMITIAN_TIME_DEPENDENT,
+                                  generator=liouvillian_generator,
+                                  jumps=jumps,
+                                  expect_operators=expect_operator,
+                                  options=options)
+
+        if time_dependent:
+            if nonhermitian_time_dependent:
+                return PropagatorPlan(mode=PropagatorMode.NONHERMITIAN_TIME_DEPENDENT,
+                                      generator=liouvillian_generator,
+                                      jumps=jumps,
+                                      expect_operators=expect_operator,
+                                      options=options)
+            return PropagatorPlan(mode=PropagatorMode.HERMITIAN_TIME_DEPENDENT,
+                                  hamiltonian=htd_hamiltonian,
+                                  collapse_operators=htd_collapse_operators,
+                                  jumps=ti_jumps,
+                                  expect_operators=expect_operator,
+                                  options=options)
+
+        return PropagatorPlan(mode=PropagatorMode.TIME_INDEPENDENT,
+                              generator=liouvillian_generator.constant,
+                              jumps=ti_jumps,
+                              expect_operators=expect_operator)
 
     def _requires_fourier_virtual_configs(self) -> bool:
         for time_bins in self.binned_detectors.values():
@@ -119,3 +144,20 @@ class Generator:
                 updated[det_key] = 0
                 updated[res_key] = 0
         return updated
+
+
+class PropagatorMode(Enum):
+    TIME_INDEPENDENT = "time_independent"
+    HERMITIAN_TIME_DEPENDENT = "hermitian_time_dependent"
+    NONHERMITIAN_TIME_DEPENDENT = "nonhermitian_time_dependent"
+
+
+@dataclass(frozen=True)
+class PropagatorPlan:
+    mode: PropagatorMode
+    generator: object = None
+    hamiltonian: list | None = None
+    collapse_operators: list | None = None
+    jumps: list | None = None
+    expect_operators: list | None = None
+    options: dict | None = None

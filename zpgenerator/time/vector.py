@@ -154,8 +154,8 @@ class TimeOperatorCollection(TimeFunctionCollection, ATimeOperator):
 
     def _check_objects(self):
         self._check_keys()
-        assert all(op.subdims == self._objects[0].subdims for op in self._objects), \
-            "Operators must share dimensions."
+        if self._objects and not all(op.subdims == self._objects[0].subdims for op in self._objects):
+            raise ValueError("Operators must share dimensions.")
 
     def _check_add(self, operator, parameters: dict = None, name: str = None):
         operator = super(TimeFunctionCollection, self)._check_add(operator, parameters, name)
@@ -229,8 +229,10 @@ class CompositeTimeOperator(TimeOperatorCollection):
 
     def _check_objects(self):
         self._check_keys()  # self._objects is mutable, children updated automatically, only check_keys left to do
-        assert all(op.subdims == self._objects[0].subdims for op in self._objects), "Operators must share dimensions."
-        assert all(op.is_super == self._objects[0].is_super for op in self._objects), "Operators must share is_super."
+        if self._objects and not all(op.subdims == self._objects[0].subdims for op in self._objects):
+            raise ValueError("Operators must share dimensions.")
+        if self._objects and not all(op.is_super == self._objects[0].is_super for op in self._objects):
+            raise ValueError("Operators must share is_super.")
 
     @classmethod
     def identity(cls, dim: int):

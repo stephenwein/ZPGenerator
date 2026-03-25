@@ -1,5 +1,6 @@
-from ..time import OperatorInputList, CompositeTimeOperator, TimeVectorOperator, TimeFunctionCollection
+from ..time import OperatorInputList, CompositeTimeOperator, TimeVectorOperator, TimeFunctionCollection, id_flatten
 from ..time.evaluate.quadruple import EvaluatedQuadruple
+from ..time.evaluate.dirac import EvaluatedDiracOperator
 from .quantum import AQuantumSystem, SystemCollection
 from typing import Union
 
@@ -18,8 +19,10 @@ class HamiltonianBase(AQuantumSystem, CompositeTimeOperator):
 
     def _check_objects(self):
         self._check_keys()
-        assert all(op.subdims == self._objects[0].subdims for op in self._objects), "Operators must share dimensions."
-        assert all(not op.is_super for op in self._objects), "Cannot add superoperators."
+        if self._objects and not all(op.subdims == self._objects[0].subdims for op in self._objects):
+            raise ValueError("Operators must share dimensions.")
+        if self._objects and not all(not op.is_super for op in self._objects):
+            raise ValueError("Cannot add superoperators.")
 
     def is_nonhermitian_time_dependent(self, t: float, parameters: dict = None):
         return False
@@ -73,18 +76,25 @@ class NaturalSystem(SystemCollection):
 
         super().__init__(parameters=parameters, name=name, rule=sum,
                          types=[HamiltonianBase, EnvironmentBase] if types is None else types)
-        self._objects.append(self.hamiltonian)
-        self._objects.append(self.environment)
+        self._sync_objects()
         self._check_objects()
 
     def _check_objects(self):
         self._check_keys()
         if self.hamiltonian.subdims and self.environment.subdims:
-            assert self.hamiltonian.subdims == self.environment.subdims, \
-                "EnvironmentBase and HamiltonianBase must share the same dimensions"
+            if self.hamiltonian.subdims != self.environment.subdims:
+                raise ValueError("EnvironmentBase and HamiltonianBase must share the same dimensions")
 
     def _check_add(self, operator, parameters: dict = None, name: str = None):
         return super(TimeFunctionCollection, self)._check_add(operator, parameters, name)
+
+    @property
+    def objects(self):
+        return [self.hamiltonian, self.environment]
+
+    def _sync_objects(self):
+        self._objects = self.objects
+        self.set_children(self._objects)
 
     def _add(self, operator: Union[HamiltonianBase, EnvironmentBase], parameters: dict = None, name: str = None):
         if isinstance(operator, HamiltonianBase):
@@ -103,3 +113,21 @@ class NaturalSystem(SystemCollection):
     @operators.setter
     def operators(self, operators):
         self._operators = operators
+
+    def evaluate_natural_dynamics(self, t: float, parameters: dict = None):
+        parameters = self.set_parameters(parameters)
+        instantaneous_ops = id_flatten([
+            self.hamiltonian.evaluate_dirac(t, parameters),
+            self.environment.evaluate_dirac(t, parameters),
+        ])
+        return (
+            self.hamiltonian.evaluate_quadruple(t, parameters) +
+            self.environment.evaluate_quadruple(t, parameters),
+            sum(instantaneous_ops, EvaluatedDiracOperator()),
+        )
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        return self.evaluate_natural_dynamics(t, parameters)[0]
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        return self.evaluate_natural_dynamics(t, parameters)[1]

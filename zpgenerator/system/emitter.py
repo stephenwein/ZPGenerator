@@ -3,6 +3,7 @@ from .scatterer import AElement
 from .natural import AQuantumSystem, HamiltonianBase, EnvironmentBase
 from .control import ChannelBase, ControlBase, CompositeControl, ControlledSystem
 from ..time.evaluate.quadruple import EvaluatedQuadruple
+from ..time.evaluate.dirac import EvaluatedDiracOperator
 from typing import Union, List
 from qutip import Qobj
 from abc import abstractmethod
@@ -30,8 +31,10 @@ class LindbladVector(AQuantumSystem, TimeVectorOperator):
 
     def _check_objects(self):
         super()._check_objects()
-        assert all(not op.is_super for op in self._objects), "Cannot add superoperators."
-        assert all(not op.has_instant for op in self._objects), "Cannot add instant operators."
+        if not all(not op.is_super for op in self._objects):
+            raise ValueError("Cannot add superoperators.")
+        if not all(not op.has_instant for op in self._objects):
+            raise ValueError("Cannot add instant operators.")
 
     def is_nonhermitian_time_dependent(self, t: float, parameters: dict = None):
         return self.is_time_dependent(t, parameters)
@@ -86,7 +89,7 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
                          states=states, operators=operators, parameters=parameters, name=name,
                          types=[HamiltonianBase, EnvironmentBase, ChannelBase, ControlBase, LindbladVector]
                          if types is None else types)
-        self._objects.append(self.transitions)
+        self._sync_objects()
         self._check_objects()
 
         self._initial_time = None
@@ -97,9 +100,10 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
     def _check_objects(self):
         super()._check_objects()
         if self.transitions.operator_list:
-            assert self.environment.operator_list, "Transitions cannot occur without an environment"
-            assert self.subdims == self.transitions.subdims, \
-                "Transition operator dimensions must match the dimensions of the system."
+            if not self.environment.operator_list:
+                raise ValueError("Transitions cannot occur without an environment")
+            if self.subdims != self.transitions.subdims:
+                raise ValueError("Transition operator dimensions must match the dimensions of the system.")
 
     @property
     def modes(self):
@@ -121,24 +125,44 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
     def initial_time(self, time: Union[float, int]):
         self._initial_time = time
 
+    @property
+    def objects(self):
+        return [self.hamiltonian, self.environment, self.control, self.transitions]
+
+    def _sync_objects(self):
+        self._objects = self.objects
+        self.set_children(self._objects)
+
     def set_system(self,
                    system: AQuantumSystem,
                    transitions: Union[LindbladVector, List[Qobj], List[ATimeOperator]] = None):
-        EmitterBase.__init__(self,
-                             hamiltonian=system.hamiltonian if hasattr(system, 'hamiltonian') else None,
-                             environment=system.environment if hasattr(system, 'environment') else None,
-                             control=system.control if hasattr(system, 'control') else None,
-                             transitions=transitions,
-                             states=system.states if hasattr(system, 'states') else None,
-                             operators=system.operators if hasattr(system, 'operators') else None,
-                             parameters=system.local_default_parameters,
-                             name=system.name)
+        self.hamiltonian = system.hamiltonian if hasattr(system, 'hamiltonian') else HamiltonianBase()
+        self.environment = system.environment if hasattr(system, 'environment') else EnvironmentBase()
+        self.control = system.control if hasattr(system, 'control') else CompositeControl()
+        self.transitions = LindbladVector(transitions) if not isinstance(transitions, LindbladVector) else \
+            LindbladVector() if transitions is None else transitions
+        self.transitions.default_name = '_transitions'
+
+        self.states = system.states if hasattr(system, 'states') else {}
+        self.operators = system.operators if hasattr(system, 'operators') else {}
+
+        self._default_parameters = system.local_default_parameters if hasattr(system, 'local_default_parameters') else {}
+        self.name = system.name
+        self._sync_objects()
+        self._check_objects()
         self.system = system
 
     def _add(self, system, parameters: dict = None, name: str = None):
         super()._add(system, parameters, name)
         if isinstance(system, LindbladVector):
             self.transitions.add(system, parameters, name)
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        parameters = self.set_parameters(parameters)
+        return super().evaluate_quadruple(t, parameters) + self.transitions.evaluate_quadruple(t, parameters)
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        return super().evaluate_dirac(t, parameters)
 
     def gather_quadruples(self, t: float, parameters: dict = None) -> List[EvaluatedQuadruple]:
         return [self.evaluate_quadruple(t, parameters)]
