@@ -1,5 +1,6 @@
-from ..time import OperatorInputList, CompositeTimeOperator, TimeVectorOperator, TimeFunctionCollection
+from ..time import OperatorInputList, CompositeTimeOperator, TimeVectorOperator, TimeFunctionCollection, id_flatten
 from ..time.evaluate.quadruple import EvaluatedQuadruple
+from ..time.evaluate.dirac import EvaluatedDiracOperator
 from .quantum import AQuantumSystem, SystemCollection
 from typing import Union
 
@@ -103,3 +104,21 @@ class NaturalSystem(SystemCollection):
     @operators.setter
     def operators(self, operators):
         self._operators = operators
+
+    def evaluate_natural_dynamics(self, t: float, parameters: dict = None):
+        parameters = self.set_parameters(parameters)
+        instantaneous_ops = id_flatten([
+            self.hamiltonian.evaluate_dirac(t, parameters),
+            self.environment.evaluate_dirac(t, parameters),
+        ])
+        return (
+            self.hamiltonian.evaluate_quadruple(t, parameters) +
+            self.environment.evaluate_quadruple(t, parameters),
+            sum(instantaneous_ops, EvaluatedDiracOperator()),
+        )
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        return self.evaluate_natural_dynamics(t, parameters)[0]
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        return self.evaluate_natural_dynamics(t, parameters)[1]

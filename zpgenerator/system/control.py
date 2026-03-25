@@ -1,8 +1,23 @@
 from ..time import OperatorInputList, CompositeTimeOperator, sum_flatten
 from ..time.evaluate.quadruple import EvaluatedQuadruple
+from ..time.evaluate.dirac import EvaluatedDiracOperator
 from .quantum import SystemCollection
 from .natural import NaturalSystem, HamiltonianBase, EnvironmentBase
 from typing import Union, List
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class EvaluatedControl:
+    continuous: EvaluatedQuadruple
+    instantaneous: EvaluatedDiracOperator
+
+
+def combine_evaluated_controls(controls: List["EvaluatedControl"]) -> "EvaluatedControl":
+    return EvaluatedControl(
+        continuous=sum((control.continuous for control in controls), EvaluatedQuadruple()),
+        instantaneous=sum((control.instantaneous for control in controls), EvaluatedDiracOperator()),
+    )
 
 
 class ChannelBase(CompositeTimeOperator):
@@ -71,9 +86,17 @@ class ControlBase(NaturalSystem):
         elif isinstance(control, ChannelBase):
             self.channel.add(control, parameters, name)
 
-    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+    def evaluate_control(self, t: float, parameters: dict = None) -> EvaluatedControl:
         parameters = self.set_parameters(parameters)
-        return self.hamiltonian.evaluate_quadruple(t, parameters) + self.environment.evaluate_quadruple(t, parameters)
+        continuous, instantaneous = self.evaluate_natural_dynamics(t, parameters)
+        instantaneous = instantaneous + self.channel.evaluate_dirac(t, parameters)
+        return EvaluatedControl(continuous=continuous, instantaneous=instantaneous)
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        return self.evaluate_control(t, parameters).continuous
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        return self.evaluate_control(t, parameters).instantaneous
 
 
 class CompositeControl(SystemCollection):
@@ -88,6 +111,16 @@ class CompositeControl(SystemCollection):
                  types: list = None):
         super().__init__(systems=systems, parameters=parameters, name=name, rule=sum_flatten,
                          types=[ControlBase, CompositeControl] if types is None else types)
+
+    def evaluate_control(self, t: float, parameters: dict = None) -> EvaluatedControl:
+        parameters = self.set_parameters(parameters)
+        return combine_evaluated_controls([system.evaluate_control(t, parameters) for system in self._objects])
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        return self.evaluate_control(t, parameters).continuous
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        return self.evaluate_control(t, parameters).instantaneous
 
 
 class ControlledSystem(NaturalSystem):
@@ -136,3 +169,16 @@ class ControlledSystem(NaturalSystem):
         super()._add(operator, parameters, name)
         if isinstance(operator, ControlBase):
             self.control.add(operator, parameters, name)
+
+    def evaluate_control(self, t: float, parameters: dict = None) -> EvaluatedControl:
+        return self.control.evaluate_control(t, self.set_parameters(parameters))
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        parameters = self.set_parameters(parameters)
+        natural, _ = self.evaluate_natural_dynamics(t, parameters)
+        return natural + self.evaluate_control(t, parameters).continuous
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        parameters = self.set_parameters(parameters)
+        _, natural = self.evaluate_natural_dynamics(t, parameters)
+        return natural + self.evaluate_control(t, parameters).instantaneous

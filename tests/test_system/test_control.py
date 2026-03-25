@@ -61,6 +61,7 @@ def _make_ham_env_chn():
 def test_control_base():
     ham, env, chn = _make_ham_env_chn()
     ctrl = ControlBase(hamiltonian=ham, environment=env, channel=chn, name='drive')
+    evaluation = ctrl.evaluate_control(1)
     rabi0 = pi / sqrt(2 * pi)
     assert ctrl.hamiltonian.evaluate(0) == liouvillian(rabi0 * (create(2) + destroy(2)) / 2)
     assert ctrl.environment.evaluate(0) == liouvillian(qzero(2), [rabi0 ** 2 * 10e-4 * create(2) * destroy(2)])
@@ -69,6 +70,8 @@ def test_control_base():
     assert ctrl.evaluate(0) == liouvillian(H=rabi0 * (create(2) + destroy(2)) / 2,
                                            c_ops=[rabi0 ** 2 * 10e-4 * create(2) * destroy(2)])
     assert ctrl.evaluate_dirac(1).evaluate() == unitary_propagation_superoperator(destroy(2) + create(2))
+    assert evaluation.continuous.evaluate(1) == ctrl.evaluate_quadruple(1).evaluate(1)
+    assert evaluation.instantaneous.evaluate() == ctrl.evaluate_dirac(1).evaluate()
     assert ctrl.is_time_dependent(0)
     assert ctrl.parameters == ['area',
                                'delay',
@@ -115,6 +118,7 @@ def _make_controlled_system():
 
 def test_controlled_system():
     sys = _make_controlled_system()
+    control_eval = sys.evaluate_control(1)
 
     sys.states.update({'|g>': fock(2, 0), '|e>': fock(2, 1)})
     sys.operators.update({'dipole': destroy(2), 'X': create(2) + destroy(2), 'num': create(2) * destroy(2)})
@@ -170,3 +174,4 @@ def test_controlled_system():
     assert sys.evaluate_quadruple(0).hamiltonian.list_form()[1][0] == sys.operators['X'] / 2
     assert isclose(sys.evaluate_quadruple(0).hamiltonian.list_form()[1][1](0, {}), sqrt(pi / 2))
     assert sys.evaluate_dirac(1).evaluate() == unitary_propagation_superoperator(sys.operators['X'])
+    assert control_eval.instantaneous.evaluate() == unitary_propagation_superoperator(sys.operators['X'])

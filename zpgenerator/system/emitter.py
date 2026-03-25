@@ -3,6 +3,7 @@ from .scatterer import AElement
 from .natural import AQuantumSystem, HamiltonianBase, EnvironmentBase
 from .control import ChannelBase, ControlBase, CompositeControl, ControlledSystem
 from ..time.evaluate.quadruple import EvaluatedQuadruple
+from ..time.evaluate.dirac import EvaluatedDiracOperator
 from typing import Union, List
 from qutip import Qobj
 from abc import abstractmethod
@@ -145,6 +146,13 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
         super()._add(system, parameters, name)
         if isinstance(system, LindbladVector):
             self.transitions.add(system, parameters, name)
+
+    def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        parameters = self.set_parameters(parameters)
+        return super().evaluate_quadruple(t, parameters) + self.transitions.evaluate_quadruple(t, parameters)
+
+    def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
+        return super().evaluate_dirac(t, parameters)
 
     def gather_quadruples(self, t: float, parameters: dict = None) -> List[EvaluatedQuadruple]:
         return [self.evaluate_quadruple(t, parameters)]

@@ -176,10 +176,12 @@ class MultiBodyEmitter(MultiBodyEmitterBase):
         self.coupling.pad_right(subdims)
 
     def evaluate_quadruple(self, t: float, parameters: dict = None) -> EvaluatedQuadruple:
+        parameters = self.set_parameters(parameters)
+        control = self.control.evaluate_control(t, parameters)
         return super().evaluate_quadruple(t, parameters) + \
-            self.coupling.evaluate_quadruple(t, self.set_parameters(parameters)) + \
-            self.control.evaluate_quadruple(t, self.set_parameters(parameters))
+            self.coupling.evaluate_quadruple(t, parameters) + \
+            control.continuous
 
     def evaluate_dirac(self, t: float, parameters: dict = None) -> EvaluatedDiracOperator:
         parameters = self.set_parameters(parameters)
-        return super().evaluate_dirac(t, parameters) + self.control.evaluate_dirac(t, self.set_parameters(parameters))
+        return super().evaluate_dirac(t, parameters) + self.control.evaluate_control(t, parameters).instantaneous
