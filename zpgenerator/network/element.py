@@ -1,5 +1,6 @@
 from ..time import TimeFunctionCollection, TimeOperatorCollection, EvaluatedDiracOperator, EvaluatedQuadruple, \
     id_flatten, TupleDict
+from ..time.evaluate.quadruple import series_product_quadruples
 from ..system import AElement, AScatteringMatrix, AQuantumSystem, AQuantumEmitter
 from typing import List, Union
 from math import prod
@@ -21,7 +22,7 @@ class ElementCollection(AElement, TimeOperatorCollection):
                  types: list = None):
         self._elements = []
         super().__init__(operators=elements, parameters=parameters, name=name,
-                         rule=lambda objects, *args: prod(objects) if rule is None else rule,
+                         rule=series_product_quadruples if rule is None else rule,
                          types=[AElement] if types is None else types)
 
         self._initial_state = None

@@ -1,6 +1,6 @@
 from ..time import ATimeOperator, TimeFunctionCollection, TimeOperatorCollection, EvaluatedOperator, id_flatten, \
     DefaultCache
-from ..time.evaluate.quadruple import EvaluatedQuadruple
+from ..time.evaluate.quadruple import EvaluatedQuadruple, concatenate_quadruples
 from abc import abstractmethod
 from typing import Union, List
 from qutip import Qobj
@@ -47,7 +47,7 @@ class SystemCollection(AQuantumSystem, TimeOperatorCollection):
                  systems: Union[AQuantumSystem, List[AQuantumSystem]] = None,
                  parameters: dict = None,
                  name: str = None,
-                 rule: callable = sum,
+                 rule: callable = concatenate_quadruples,
                  types: list = None):
         super().__init__(operators=systems, parameters=parameters, name=name, rule=rule,
                          types=[AQuantumSystem] if types is None else types)
@@ -68,4 +68,3 @@ class SystemCollection(AQuantumSystem, TimeOperatorCollection):
     def partial_evaluate(self, t: float, parameters: dict = None) -> List[EvaluatedOperator]:
         parameters = self.set_parameters(parameters)
         return id_flatten([system.partial_evaluate(t, parameters) for system in self._objects])
-
