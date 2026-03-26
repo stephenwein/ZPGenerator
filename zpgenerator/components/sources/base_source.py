@@ -197,6 +197,18 @@ def source_from_emitter(emitter: EmitterBase,
     return source
 
 
+def rate_gate_from_pulse(pulse,
+                         rate_function: callable,
+                         parameter_name: str,
+                         gate_parameters: dict = None,
+                         pulse_parameters: dict = None):
+    gate = TimeInterval.source_gate(pulse,
+                                    parameters=pulse_parameters,
+                                    parameter_name=parameter_name)
+    gate.create_insert_parameter_function(rate_function, gate_parameters)
+    return gate
+
+
 def infer_source_gate(emitter: EmitterBase, parameters: dict = None):
     """
     Infer a finite source gate from an emitter's explicit temporal support.

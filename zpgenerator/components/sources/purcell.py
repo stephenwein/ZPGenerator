@@ -2,7 +2,7 @@ from ...elements import Emitter
 from ...time import TimeInterval
 from ...dynamic.control import Control
 from ...dynamic.pulse import Pulse
-from .base_source import GatedSourceComponent
+from .base_source import GatedSourceComponent, rate_gate_from_pulse, source_from_emitter
 from typing import Union
 
 
@@ -30,16 +30,21 @@ class PurcellSource(GatedSourceComponent):
         emitter.initial_state = emitter.states['|g>|0>']
 
         if not gate:
-            gate = TimeInterval.source_gate(pulse,
-                                            parameters=emitter.default_parameters | (parameters if parameters else {}),
-                                            parameter_name='_purcell_rate')
+            gate = rate_gate_from_pulse(
+                pulse,
+                rate_function=self._purcell_rate,
+                parameter_name='_purcell_rate',
+                pulse_parameters=emitter.default_parameters | (parameters if parameters else {}),
+            )
 
-            gate.create_insert_parameter_function(self._purcell_rate)
-
-        super().__init__(emitter=emitter, gate=gate, efficiency=efficiency, name=name,
-                         parameters=emitter.default_parameters | (parameters if parameters else {}))
-        self.output.ports[0].close()
-        self.mask()
+        source = source_from_emitter(emitter=emitter,
+                                     gate=gate,
+                                     efficiency=efficiency,
+                                     parameters=emitter.default_parameters | (parameters if parameters else {}),
+                                     name=name,
+                                     close_outputs=[0],
+                                     mask_outputs=True)
+        self.__dict__ = source.__dict__
         self.default_name = '_Purcell'
 
     @staticmethod
