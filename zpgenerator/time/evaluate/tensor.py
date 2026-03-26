@@ -10,15 +10,26 @@ from .dims import is_trivial_dim, canonical_dim_list
 
 # A function that inserts operator op at position n in the tensor space of dims
 def tensor_insert(op: Qobj, n, dims):
-    if canonical_dim_list(op.dims[0][0] if op.issuper else op.dims[0]) != canonical_dim_list(dims[n]):
+    op_dims = canonical_dim_list(op.dims[0][0] if op.issuper else op.dims[0])
+    grouped_dims = canonical_dim_list(dims[n]) if n < len(dims) else None
+    if grouped_dims == op_dims:
+        target_dims = grouped_dims
+        step = 1
+    else:
+        target_dims = canonical_dim_list(id_flatten(dims[n:n + len(op_dims)]))
+        step = len(op_dims)
+    if op_dims != target_dims:
         raise ValueError("Position to insert must match the dimensions of the operator")
     opvec = []
-    for i in range(0, len(dims)):
+    i = 0
+    while i < len(dims):
         if i == n:
             opvec.append(op)
+            i += step
         else:
             if not is_trivial_dim(dims[i]):
                 opvec.append(spre(qeye(dims[i]))) if op.issuper else opvec.append(qeye(dims[i]))
+            i += 1
     new_op = super_tensor(opvec) if op.issuper else tensor(opvec)
     return new_op
 
@@ -31,8 +42,10 @@ def evop_tensor_flatten(matrices, *args):
         operators = deepcopy(matrices)
         subdims = [op.subdims for op in operators]
         new_ops = []
-        for i, op in enumerate(operators):
-            new_ops.append(op.tensor_insert(i, subdims))
+        offset = 0
+        for op in operators:
+            new_ops.append(op.tensor_insert(offset, subdims))
+            offset += len(op.subdims)
         return prod(op for op in new_ops)
 
 
@@ -76,7 +89,12 @@ def sum_flatten(objects, default, remove: list = None):
 def sum_tensor(objects, default):
     if all(hasattr(obj, 'tensor_insert') for obj in objects):
         subdims = id_flatten([obj.subdims for obj in objects])
-        return sum((obj.tensor_insert(i, subdims) for i, obj in enumerate(objects)), default)
+        total = default
+        offset = 0
+        for obj in objects:
+            total += obj.tensor_insert(offset, subdims)
+            offset += len(obj.subdims)
+        return total
     else:
         return prod(objects)
 

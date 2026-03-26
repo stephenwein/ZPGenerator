@@ -27,8 +27,8 @@ class TrionCavitySource(GatedSourceComponent):
         pulse = Pulse.dirac(parameters=parameters) if pulse is None else pulse
 
         trion = emitter.subsystems['trion']
-        right = trion.operators['lower_R']
-        left = trion.operators['lower_L']
+        right = emitter.operators['lower_R']
+        left = emitter.operators['lower_L']
         horizontal = (right + left) / sqrt(2)
         vertical = 1.j * (right - left) / sqrt(2)
         params = parinit({'theta': pi / 4, 'phi': -pi / 2}, parameters)
@@ -40,14 +40,18 @@ class TrionCavitySource(GatedSourceComponent):
             emitter.add(Control.drive(pulse=pulse_orthogonal, transition=dipole_orthogonal))
 
         emitter.initial_state = (
-            tensor(trion.states['|spin_down>'], emitter.subsystems['cavity_h'].states['|0>'],
-                   emitter.subsystems['cavity_v'].states['|0>']) *
-            tensor(trion.states['|spin_down>'], emitter.subsystems['cavity_h'].states['|0>'],
-                   emitter.subsystems['cavity_v'].states['|0>']).dag() +
-            tensor(trion.states['|spin_up>'], emitter.subsystems['cavity_h'].states['|0>'],
-                   emitter.subsystems['cavity_v'].states['|0>']) *
-            tensor(trion.states['|spin_up>'], emitter.subsystems['cavity_h'].states['|0>'],
-                   emitter.subsystems['cavity_v'].states['|0>']).dag()
+            tensor(emitter.subsystems['cavity_h'].states['|0>'],
+                   emitter.subsystems['cavity_v'].states['|0>'],
+                   trion.states['|spin_down>']) *
+            tensor(emitter.subsystems['cavity_h'].states['|0>'],
+                   emitter.subsystems['cavity_v'].states['|0>'],
+                   trion.states['|spin_down>']).dag() +
+            tensor(emitter.subsystems['cavity_h'].states['|0>'],
+                   emitter.subsystems['cavity_v'].states['|0>'],
+                   trion.states['|spin_up>']) *
+            tensor(emitter.subsystems['cavity_h'].states['|0>'],
+                   emitter.subsystems['cavity_v'].states['|0>'],
+                   trion.states['|spin_up>']).dag()
         ) / 2
 
         gate = TimeInterval.source_gate(pulse, parameters=parameters) if gate is None else gate
@@ -57,7 +61,7 @@ class TrionCavitySource(GatedSourceComponent):
                                      efficiency=efficiency,
                                      parameters=parameters,
                                      name=name,
-                                     close_outputs=[0, 1],
+                                     close_outputs=[2, 3],
                                      mask_outputs=True)
         self.__dict__ = source.__dict__
         self.default_name = '_TrionCavity'

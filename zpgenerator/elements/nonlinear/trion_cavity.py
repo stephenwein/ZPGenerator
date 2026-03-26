@@ -15,9 +15,9 @@ class TrionCavityEmitter(MultiBodyEmitter):
                  truncation: int = 2,
                  parameters: dict = None,
                  name: str = None):
-        trion = TrionEmitter(charge=charge, name='trion')
         cavity_h = CavityEmitter(truncation=truncation, name='cavity_h')
         cavity_v = CavityEmitter(truncation=truncation, name='cavity_v')
+        trion = TrionEmitter(charge=charge, name='trion')
 
         lower_r = trion.operators['lower_R']
         lower_l = trion.operators['lower_L']
@@ -29,22 +29,21 @@ class TrionCavityEmitter(MultiBodyEmitter):
 
         coupling = CouplingBase([
             CouplingTerm(
-                [lambda args: args['coupling_h'] * dipole_h, cavity_h.operators['annihilation'].dag(), id_v],
+                [cavity_h.operators['annihilation'].dag(), id_v, lambda args: args.get('coupling_h', 1) * dipole_h],
                 parameters={'coupling_h': 1},
             ),
             CouplingTerm(
-                [lambda args: args['coupling_h'] * dipole_h.dag(), cavity_h.operators['annihilation'], id_v],
+                [cavity_h.operators['annihilation'], id_v, lambda args: args.get('coupling_h', 1) * dipole_h.dag()],
                 parameters={'coupling_h': 1},
             ),
             CouplingTerm(
-                [lambda args: args['coupling_v'] * dipole_v, id_h, cavity_v.operators['annihilation'].dag()],
+                [id_h, cavity_v.operators['annihilation'].dag(), lambda args: args.get('coupling_v', 1) * dipole_v],
                 parameters={'coupling_v': 1},
             ),
             CouplingTerm(
-                [lambda args: args['coupling_v'] * dipole_v.dag(), id_h, cavity_v.operators['annihilation']],
+                [id_h, cavity_v.operators['annihilation'], lambda args: args.get('coupling_v', 1) * dipole_v.dag()],
                 parameters={'coupling_v': 1},
             ),
         ])
 
-        super().__init__(subsystems=[trion, cavity_h, cavity_v], coupling=coupling, parameters=parameters, name=name)
-
+        super().__init__(subsystems=[cavity_h, cavity_v, trion], coupling=coupling, parameters=parameters, name=name)

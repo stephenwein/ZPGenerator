@@ -1,6 +1,7 @@
 from zpgenerator.components import Source
 from zpgenerator.components.sources import TrionCavitySource
 from zpgenerator.elements import Emitter
+from zpgenerator.dynamic import Pulse
 
 
 def test_trion_cavity_emitter_builds_exact_tensor_model():
@@ -30,3 +31,10 @@ def test_trion_cavity_factory_matches_component_semantics():
         [port.is_closed for port in component_source.output.ports]
     assert [port.is_closed for port in factory_source.input.ports] == \
         [port.is_closed for port in component_source.input.ports]
+
+
+def test_trion_cavity_source_supports_port_resolved_quality_metrics():
+    source = Source.trion_cavity(pulse=Pulse.gaussian(parameters={'width': 1, 'area': 3.14159}))
+
+    assert source.beta(0) > 0
+    assert source.beta(1) > 0
