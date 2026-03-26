@@ -4,7 +4,7 @@ from ..dynamic.operator.phonon_bath import Material
 from typing import Union
 from qutip import Qobj
 from ..elements import Emitter
-from .sources.base_source import GatedSourceComponent, infer_source_gate
+from .sources.base_source import GatedSourceComponent, source_from_emitter, infer_source_gate
 from ..system import LindbladVector
 
 
@@ -135,17 +135,10 @@ class Source(SourceComponent):
                                                initial_time=initial_time,
                                                parameters=parameters,
                                                name=emitter_name)
-
-        gate = infer_source_gate(emitter, parameters) if gate is None else gate
-        source = GatedSourceComponent(emitter=emitter,
-                                      gate=gate,
-                                      efficiency=efficiency,
-                                      parameters=parameters,
-                                      name=name)
-
-        for output in ([] if close_outputs is None else close_outputs):
-            source.output.ports[output].close()
-        if mask_outputs:
-            source.mask()
-
-        return source
+        return source_from_emitter(emitter=emitter,
+                                   gate=gate,
+                                   efficiency=efficiency,
+                                   parameters=parameters,
+                                   name=name,
+                                   close_outputs=close_outputs,
+                                   mask_outputs=mask_outputs)

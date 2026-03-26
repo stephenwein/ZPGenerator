@@ -175,6 +175,28 @@ class GatedSourceComponent(SourceComponent):
             port.close()
 
 
+def source_from_emitter(emitter: EmitterBase,
+                        gate: Union[TimeInterval, list, callable] = None,
+                        efficiency: float = 1,
+                        parameters: dict = None,
+                        name: str = None,
+                        close_outputs: list = None,
+                        mask_outputs: bool = False):
+    gate = infer_source_gate(emitter, parameters) if gate is None else gate
+    source = GatedSourceComponent(emitter=emitter,
+                                  gate=gate,
+                                  efficiency=efficiency,
+                                  parameters=parameters,
+                                  name=name)
+
+    for output in ([] if close_outputs is None else close_outputs):
+        source.output.ports[output].close()
+    if mask_outputs:
+        source.mask()
+
+    return source
+
+
 def infer_source_gate(emitter: EmitterBase, parameters: dict = None):
     """
     Infer a finite source gate from an emitter's explicit temporal support.

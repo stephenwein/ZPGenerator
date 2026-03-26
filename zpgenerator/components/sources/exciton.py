@@ -1,10 +1,10 @@
 from ...elements import Emitter
-from .base_source import GatedSourceComponent
 from ...time import TimeInterval, Operator, PulseBase
 from ...time.parameters import parinit
 from ...dynamic.control import Control
 from ...dynamic.pulse import Pulse
 from typing import Union
+from .base_source import GatedSourceComponent, source_from_emitter
 
 
 class ExcitonSource(GatedSourceComponent):
@@ -26,10 +26,14 @@ class ExcitonSource(GatedSourceComponent):
                                     parinit({'theta': 0, 'phi': 0}, parameters))
 
         emitter.add(Control.drive(pulse=pulse, transition=dipole))
+        gate = TimeInterval.source_gate(pulse, parameters=parameters) if gate is None else gate
 
         emitter.initial_state = emitter.states['|g>']
 
-        gate = TimeInterval.source_gate(pulse, parameters=parameters) if gate is None else gate
-
-        super().__init__(emitter=emitter, gate=gate, efficiency=efficiency, parameters=parameters, name=name)
+        source = source_from_emitter(emitter=emitter,
+                                     gate=gate,
+                                     efficiency=efficiency,
+                                     parameters=parameters,
+                                     name=name)
+        self.__dict__ = source.__dict__
         self.default_name = '_Exciton'
