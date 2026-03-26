@@ -4,4 +4,5 @@ from .exciton import ExcitonSystem, ExcitonEmitter
 from .laser import ShapedLaserEmitter
 from .qubit import QubitSystem, TwoLevelEmitter
 from .trion import TrionSystem, TrionEmitter
+from .trion_cavity import TrionCavityEmitter
 from .purcell import PurcellEmitter

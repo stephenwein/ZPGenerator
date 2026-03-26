@@ -65,6 +65,26 @@ class Source(SourceComponent):
                            parameters=parameters, name=name)
 
     @classmethod
+    def trion_cavity(cls,
+                     charge: str = 'negative',
+                     pulse: PulseBase = None,
+                     pulse_orthogonal: PulseBase = None,
+                     gate: Union[TimeInterval, list] = None,
+                     efficiency: float = 1,
+                     truncation: int = 2,
+                     parameters: dict = None,
+                     name: str = None):
+        efficiency = parinit({'efficiency': efficiency}, parameters)['efficiency']
+        return TrionCavitySource(charge=charge,
+                                 pulse=pulse,
+                                 pulse_orthogonal=pulse_orthogonal,
+                                 gate=gate,
+                                 efficiency=efficiency,
+                                 truncation=truncation,
+                                 parameters=parameters,
+                                 name=name)
+
+    @classmethod
     def fock(cls, state: Union[int, Qobj], gate: Union[TimeInterval, list] = None,
              shape: Union[PulseBase, Lifetime] = None, shape_resolution: int = 1000, efficiency: float = 1,
              parameters: dict = None, name: str = None):

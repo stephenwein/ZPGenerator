@@ -1,5 +1,5 @@
 from .nonlinear import TrionEmitter, ExcitonEmitter, BiexcitonEmitter, TwoLevelEmitter, CavityEmitter, \
-    ShapedLaserEmitter, PurcellEmitter
+    ShapedLaserEmitter, PurcellEmitter, TrionCavityEmitter
 from ..system import EmitterBase
 from ..time import PulseBase, Lifetime
 from typing import Union
@@ -25,6 +25,14 @@ class Emitter(EmitterBase):
     @classmethod
     def trion(cls, charge: str = 'negative', parameters: dict = None, name: str = None):
         return TrionEmitter(charge=charge, parameters=parameters, name=name)
+
+    @classmethod
+    def trion_cavity(cls,
+                     charge: str = 'negative',
+                     truncation: int = 2,
+                     parameters: dict = None,
+                     name: str = None):
+        return TrionCavityEmitter(charge=charge, truncation=truncation, parameters=parameters, name=name)
 
     @classmethod
     def cavity(cls, truncation: int = 2, parameters: dict = None, name: str = None, modes: int = 1):
