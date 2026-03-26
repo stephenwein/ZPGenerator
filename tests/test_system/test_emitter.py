@@ -1,6 +1,8 @@
 from zpgenerator.system.emitter import *
+from zpgenerator.time import TimeOperator
+from zpgenerator.dynamic import Pulse
 from test_control import _make_controlled_system
-from qutip import destroy, num, create
+from qutip import destroy, num, create, Qobj
 from zpgenerator.time.parameters import Parameters
 from tests_assertions import assert_empty_qobj
 import pytest
@@ -117,3 +119,42 @@ def test_emitter_set_system_preserves_subclass_state():
 def test_emitter_rejects_transitions_without_environment():
     with pytest.raises(ValueError, match="Transitions cannot occur without an environment"):
         EmitterBase(transitions=[destroy(2)])
+
+
+def test_emitter_from_master_equation_duplicates_monitored_channels_into_environment():
+    monitored = destroy(2)
+    background = create(2)
+    states = {'|g>': Qobj([[1], [0]]), '|e>': Qobj([[0], [1]])}
+    operators = {'number': num(2)}
+
+    emitter = EmitterBase.from_master_equation(
+        hamiltonian=num(2),
+        monitored=[monitored],
+        environment=[background],
+        states=states,
+        operators=operators,
+        initial_state='|e>',
+        initial_time=3,
+        name='custom',
+    )
+
+    assert emitter.modes == 1
+    assert emitter.initial_time == 3
+    assert emitter.initial_state == states['|e>']
+    assert emitter.states == states
+    assert emitter.operators == operators
+    assert emitter.evaluate_quadruple(0).hamiltonian.constant == num(2)
+    assert emitter.evaluate_quadruple(0).transitions[0].constant == monitored
+    assert [env.constant for env in emitter.evaluate_quadruple(0).environment] == [background, monitored]
+
+
+def test_emitter_from_master_equation_accepts_time_operator_hamiltonians():
+    pulse = Pulse.gaussian()
+    hamiltonian = TimeOperator(operator=num(2), functions=pulse)
+
+    emitter = EmitterBase.from_master_equation(
+        hamiltonian=HamiltonianBase(hamiltonian),
+        monitored=[destroy(2)],
+    )
+
+    assert emitter.times()

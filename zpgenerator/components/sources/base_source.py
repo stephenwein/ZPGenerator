@@ -6,6 +6,7 @@ from ...system import EmitterBase
 from ...misc.display import Display
 from ...simulate import Processor
 from typing import Union, List
+from math import isfinite
 
 
 class SourceComponent(Component):
@@ -172,3 +173,22 @@ class GatedSourceComponent(SourceComponent):
         self.add(0, UniformLoss(efficiency=efficiency, modes=emitter.modes))
         for port in self.input.ports:
             port.close()
+
+
+def infer_source_gate(emitter: EmitterBase, parameters: dict = None):
+    """
+    Infer a finite source gate from an emitter's explicit temporal support.
+    Raises when the model is time-independent or instant-only and no honest default gate exists.
+    """
+    times = emitter.times(parameters)
+    if emitter.initial_time is not None:
+        times = [emitter.initial_time] + list(times)
+
+    finite_times = sorted(set(float(t) for t in times if isfinite(float(t))))
+    if len(finite_times) >= 2:
+        return TimeInterval(interval=[finite_times[0], finite_times[-1]])
+
+    raise ValueError(
+        "Cannot infer a finite default gate from this master equation. "
+        "Provide an explicit gate for time-independent or instant-only models."
+    )

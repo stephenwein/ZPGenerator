@@ -1,12 +1,21 @@
 from ..time import ATimeOperator, Operator, TimeVectorOperator
 from .scatterer import AElement
-from .natural import AQuantumSystem, HamiltonianBase, EnvironmentBase
+from .natural import AQuantumSystem, NaturalSystem, HamiltonianBase, EnvironmentBase
 from .control import ChannelBase, ControlBase, CompositeControl, ControlledSystem
 from ..time.evaluate.quadruple import EvaluatedQuadruple
 from ..time.evaluate.dirac import EvaluatedDiracOperator
 from typing import Union, List
 from qutip import Qobj
 from abc import abstractmethod
+from copy import deepcopy
+
+
+def _normalise_operator_inputs(operators):
+    if operators is None:
+        return []
+    if isinstance(operators, tuple):
+        return list(operators)
+    return operators
 
 
 # maybe could be made a subclass of EnvironmentBase?
@@ -151,6 +160,57 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
         self._sync_objects()
         self._check_objects()
         self.system = system
+
+    @classmethod
+    def from_master_equation(cls,
+                             hamiltonian: Union[HamiltonianBase, Qobj, Operator] = None,
+                             monitored: Union[LindbladVector, List[Qobj], List[ATimeOperator]] = None,
+                             environment: Union[EnvironmentBase, List[Qobj], List[Operator]] = None,
+                             states: dict = None,
+                             operators: dict = None,
+                             initial_state: Union[Qobj, str] = None,
+                             initial_time: Union[float, int] = None,
+                             parameters: dict = None,
+                             name: str = None):
+        """
+        Build an emitter directly from a master-equation style specification.
+
+        The monitored collapse operators are included both in the dissipative environment and in the
+        emitter transitions, so they contribute to the Liouvillian and define the collected output modes.
+        """
+        monitored = _normalise_operator_inputs(monitored)
+        environment = _normalise_operator_inputs(environment)
+
+        transitions = monitored if isinstance(monitored, LindbladVector) else \
+            LindbladVector(monitored, parameters=parameters)
+
+        base_environment = environment if isinstance(environment, EnvironmentBase) else \
+            EnvironmentBase(environment, parameters=parameters)
+        combined_environment = deepcopy(base_environment)
+        if transitions.operator_list:
+            combined_environment.add(deepcopy(transitions.operator_list))
+
+        system = NaturalSystem(hamiltonian=hamiltonian,
+                               environment=combined_environment,
+                               states=states,
+                               operators=operators,
+                               parameters=parameters,
+                               name=name)
+
+        emitter = cls()
+        emitter.set_system(system=system, transitions=deepcopy(transitions))
+
+        if isinstance(initial_state, str):
+            if initial_state not in emitter.states:
+                raise ValueError(f"Unknown initial state '{initial_state}'.")
+            emitter.initial_state = emitter.states[initial_state]
+        elif initial_state is not None:
+            emitter.initial_state = initial_state
+
+        if initial_time is not None:
+            emitter.initial_time = initial_time
+
+        return emitter
 
     def _add(self, system, parameters: dict = None, name: str = None):
         super()._add(system, parameters, name)

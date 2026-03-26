@@ -3,6 +3,9 @@ from ..time import TimeInterval, PulseBase, Lifetime, parinit
 from ..dynamic.operator.phonon_bath import Material
 from typing import Union
 from qutip import Qobj
+from ..elements import Emitter
+from .sources.base_source import GatedSourceComponent, infer_source_gate
+from ..system import LindbladVector
 
 
 class Source(SourceComponent):
@@ -94,3 +97,55 @@ class Source(SourceComponent):
                                           multiphoton_component=multiphoton_component,
                                           indistinguishability=indistinguishability,
                                           name=name)
+
+    @classmethod
+    def from_master_equation(cls,
+                             hamiltonian=None,
+                             monitored=None,
+                             environment=None,
+                             initial_state: Union[Qobj, str] = None,
+                             initial_time: Union[float, int] = None,
+                             gate: Union[TimeInterval, list, callable] = None,
+                             efficiency: float = 1,
+                             parameters: dict = None,
+                             states: dict = None,
+                             operators: dict = None,
+                             name: str = None,
+                             emitter_name: str = None,
+                             close_outputs: list = None,
+                             mask_outputs: bool = False):
+        if monitored is None:
+            monitored_inputs = []
+        elif isinstance(monitored, (list, tuple, LindbladVector)):
+            monitored_inputs = monitored
+        else:
+            monitored_inputs = [monitored]
+
+        monitored_modes = monitored_inputs.modes if isinstance(monitored_inputs, LindbladVector) else len(monitored_inputs)
+        if monitored_modes == 0:
+            raise ValueError("A source requires at least one monitored collapse operator.")
+
+        efficiency = parinit({'efficiency': efficiency}, parameters)['efficiency']
+        emitter = Emitter.from_master_equation(hamiltonian=hamiltonian,
+                                               monitored=monitored_inputs,
+                                               environment=environment,
+                                               states=states,
+                                               operators=operators,
+                                               initial_state=initial_state,
+                                               initial_time=initial_time,
+                                               parameters=parameters,
+                                               name=emitter_name)
+
+        gate = infer_source_gate(emitter, parameters) if gate is None else gate
+        source = GatedSourceComponent(emitter=emitter,
+                                      gate=gate,
+                                      efficiency=efficiency,
+                                      parameters=parameters,
+                                      name=name)
+
+        for output in ([] if close_outputs is None else close_outputs):
+            source.output.ports[output].close()
+        if mask_outputs:
+            source.mask()
+
+        return source
