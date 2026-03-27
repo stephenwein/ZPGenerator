@@ -66,3 +66,11 @@ def test_trion_cavity_keyword_defaults_still_overwrite_explicit_dependents():
 
     assert parameters['coupling_h'] == emitter.default_parameters['coupling_h']
     assert parameters['coupling_v'] == emitter.default_parameters['coupling_v']
+
+
+def test_trion_cavity_default_gate_tracks_timescale_like_purcell_source():
+    fast = Source.trion_cavity(timescale=1)
+    slow = Source.trion_cavity(timescale=2)
+
+    assert max(slow.times()) > max(fast.times())
+    assert max(slow.times()) == pytest.approx(2 * max(fast.times()))

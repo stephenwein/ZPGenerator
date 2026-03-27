@@ -1,5 +1,5 @@
 from ...elements import Emitter
-from .base_source import GatedSourceComponent, source_from_emitter
+from .base_source import GatedSourceComponent, rate_gate_from_pulse, source_from_emitter
 from ...time import TimeInterval, Operator, PulseBase
 from ...time.parameters import parinit
 from ...dynamic.control import Control
@@ -70,14 +70,36 @@ class TrionCavitySource(GatedSourceComponent):
                    trion.states['|spin_up>']).dag()
         ) / 2
 
-        gate = TimeInterval.source_gate(pulse, parameters=parameters) if gate is None else gate
+        if gate is None:
+            gate = rate_gate_from_pulse(
+                pulse,
+                rate_function=self._trion_cavity_rate,
+                parameter_name='_trion_cavity_rate',
+                pulse_parameters=emitter.default_parameters | (parameters if parameters else {}),
+            )
 
         source = source_from_emitter(emitter=emitter,
                                      gate=gate,
                                      efficiency=efficiency,
-                                     parameters=parameters,
+                                     parameters=emitter.default_parameters | (parameters if parameters else {}),
                                      name=name,
                                      close_outputs=[2, 3],
                                      mask_outputs=True)
         self.__dict__ = source.__dict__
         self.default_name = '_TrionCavity'
+
+    @staticmethod
+    def _mode_purcell_rate(args: dict, cavity: str):
+        kappa = args[f'{cavity}/decay']
+        gamma = args['trion/decay'] + 2 * args.get('trion/dephasing', 0)
+        delta = args['trion/resonance'] - args[f'{cavity}/resonance']
+        coupling = args[f'coupling_{cavity[-1]}']
+        rate = 4 * coupling ** 2 * (kappa + gamma) / ((kappa + gamma) ** 2 + 4 * delta ** 2)
+        return (rate * kappa) / (rate + kappa)
+
+    @classmethod
+    def _trion_cavity_rate(cls, args: dict):
+        return {
+            '_trion_cavity_rate':
+                cls._mode_purcell_rate(args, 'cavity_h') + cls._mode_purcell_rate(args, 'cavity_v')
+        }
