@@ -30,9 +30,26 @@ class Emitter(EmitterBase):
     def trion_cavity(cls,
                      charge: str = 'negative',
                      truncation: int = 2,
+                     purcell_factor: float = None,
+                     regime: float = None,
+                     timescale: float = None,
+                     purcell_factor_h: float = None,
+                     purcell_factor_v: float = None,
+                     regime_h: float = None,
+                     regime_v: float = None,
                      parameters: dict = None,
                      name: str = None):
-        return TrionCavityEmitter(charge=charge, truncation=truncation, parameters=parameters, name=name)
+        return TrionCavityEmitter(charge=charge,
+                                  truncation=truncation,
+                                  purcell_factor=purcell_factor,
+                                  regime=regime,
+                                  timescale=timescale,
+                                  purcell_factor_h=purcell_factor_h,
+                                  purcell_factor_v=purcell_factor_v,
+                                  regime_h=regime_h,
+                                  regime_v=regime_v,
+                                  parameters=parameters,
+                                  name=name)
 
     @classmethod
     def cavity(cls, truncation: int = 2, parameters: dict = None, name: str = None, modes: int = 1):
