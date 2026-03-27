@@ -74,8 +74,8 @@ class TrionCavityEmitter(MultiBodyEmitter):
         regime = 0.1 if regime is None else regime
         timescale = 1 if timescale is None else timescale
         keywords = {
-            'purcell_factor_h': purcell_factor if purcell_factor_h is None else purcell_factor_h,
-            'purcell_factor_v': purcell_factor if purcell_factor_v is None else purcell_factor_v,
+            'purcell_factor_h': purcell_factor / 2 if purcell_factor_h is None else purcell_factor_h,
+            'purcell_factor_v': purcell_factor / 2 if purcell_factor_v is None else purcell_factor_v,
             'regime_h': regime if regime_h is None else regime_h,
             'regime_v': regime if regime_v is None else regime_v,
             'timescale': timescale,
