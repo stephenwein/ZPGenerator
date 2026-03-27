@@ -74,3 +74,22 @@ def test_trion_cavity_default_gate_tracks_timescale_like_purcell_source():
 
     assert max(slow.times()) > max(fast.times())
     assert max(slow.times()) == pytest.approx(2 * max(fast.times()))
+
+
+def test_trion_cavity_single_mode_detuning_matches_lab_purcell_convention():
+    source = Source.trion_cavity(
+        pulse=Pulse.gaussian(parameters={'area': 1.4142135623730951 * 3.141592653589793, 'width': 10}),
+        purcell_factor_h=10,
+        purcell_factor_v=10,
+        timescale=200,
+        regime_h=0.05,
+        regime_v=0.05,
+        parameters={'theta': 0, 'phi': 0},
+    )
+
+    total_brightness = (
+        source.beta(0, parameters={'cavity_h/resonance': 20}) +
+        source.beta(1, parameters={'cavity_h/resonance': 20})
+    )
+
+    assert total_brightness == pytest.approx(5 / 6, rel=2e-2)
