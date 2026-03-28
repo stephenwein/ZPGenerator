@@ -121,6 +121,13 @@ def test_emitter_rejects_transitions_without_environment():
         EmitterBase(transitions=[destroy(2)])
 
 
+def test_emitter_rejects_duplicate_transition_names():
+    emitter = EmitterBase(transitions=[destroy(2), destroy(2)], environment=[destroy(2), destroy(2)])
+
+    with pytest.raises(ValueError, match="must be unique"):
+        emitter.transition_names = ['signal', 'signal']
+
+
 def test_emitter_from_master_equation_duplicates_monitored_channels_into_environment():
     monitored = destroy(2)
     background = create(2)

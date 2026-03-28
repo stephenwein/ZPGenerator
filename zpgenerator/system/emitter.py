@@ -25,13 +25,14 @@ def _operators_overlap(left, right):
                 if left_op == right_op:
                     return True
             except Exception:
-                pass
-            try:
-                if left_op.evaluate(0) == right_op.evaluate(0):
-                    return True
-            except Exception:
                 if left_op is right_op:
                     return True
+            try:
+                if not left_op.is_time_dependent(0) and not right_op.is_time_dependent(0):
+                    if left_op.evaluate(0) == right_op.evaluate(0):
+                        return True
+            except Exception:
+                pass
     return False
 
 
@@ -151,6 +152,8 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
             return
         if len(names) != self.modes:
             raise ValueError("Transition names must match the number of emitter modes.")
+        if len(set(names)) != len(names):
+            raise ValueError("Transition names must be unique.")
         self._transition_names = list(names)
 
     @property
