@@ -71,6 +71,8 @@ If you are using ZPGenerator for academic work, please cite the `paper introduci
    notebooks/fibonacci_states
    notebooks/wigner_functions
    notebooks/entanglement_generation
+   notebooks/phonon_assisted_excitation
+   notebooks/trion_cavity
    notebooks/RUS_gate
    notebooks/component_construction
 

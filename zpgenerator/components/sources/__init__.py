@@ -5,6 +5,7 @@ from .fock import FockSource
 from .laser import ShapedLaserSource
 from .distinguishable_noise import DistinguishableNoiseSource
 from .trion import TrionSource
+from .trion_cavity import TrionCavitySource
 from .two_level import TwoLevelSource
 from .purcell import PurcellSource
 from .phonon_assisted import PhononAssistedSource

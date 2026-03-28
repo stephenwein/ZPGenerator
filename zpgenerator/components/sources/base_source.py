@@ -6,6 +6,7 @@ from ...system import EmitterBase
 from ...misc.display import Display
 from ...simulate import Processor
 from typing import Union, List
+from math import isfinite
 
 
 class SourceComponent(Component):
@@ -172,3 +173,64 @@ class GatedSourceComponent(SourceComponent):
         self.add(0, UniformLoss(efficiency=efficiency, modes=emitter.modes))
         for port in self.input.ports:
             port.close()
+
+
+def source_from_emitter(emitter: EmitterBase,
+                        gate: Union[TimeInterval, list, callable] = None,
+                        efficiency: float = 1,
+                        parameters: dict = None,
+                        name: str = None,
+                        close_outputs: list = None,
+                        mask_outputs: bool = False):
+    gate = infer_source_gate(emitter, parameters) if gate is None else gate
+    source = GatedSourceComponent(emitter=emitter,
+                                  gate=gate,
+                                  efficiency=efficiency,
+                                  parameters=parameters,
+                                  name=name)
+
+    if hasattr(emitter, 'transition_names'):
+        for port, port_name in zip(source.output.ports, emitter.transition_names):
+            port.port_name = port_name
+
+    outputs_to_close = [] if close_outputs is None else close_outputs
+    if not isinstance(outputs_to_close, list):
+        outputs_to_close = [outputs_to_close]
+    for output in outputs_to_close:
+        port_number = source.get_port_number(output) if isinstance(output, str) else output
+        source.output.ports[port_number].close()
+    if mask_outputs:
+        source.mask()
+
+    return source
+
+
+def rate_gate_from_pulse(pulse,
+                         rate_function: callable,
+                         parameter_name: str,
+                         gate_parameters: dict = None,
+                         pulse_parameters: dict = None):
+    gate = TimeInterval.source_gate(pulse,
+                                    parameters=pulse_parameters,
+                                    parameter_name=parameter_name)
+    gate.create_insert_parameter_function(rate_function, gate_parameters)
+    return gate
+
+
+def infer_source_gate(emitter: EmitterBase, parameters: dict = None):
+    """
+    Infer a finite source gate from an emitter's explicit temporal support.
+    Raises when the model is time-independent or instant-only and no honest default gate exists.
+    """
+    times = emitter.times(parameters)
+    if emitter.initial_time is not None:
+        times = [emitter.initial_time] + list(times)
+
+    finite_times = sorted(set(float(t) for t in times if isfinite(float(t))))
+    if len(finite_times) >= 2:
+        return TimeInterval(interval=[finite_times[0], finite_times[-1]])
+
+    raise ValueError(
+        "Cannot infer a finite default gate from this master equation. "
+        "Provide an explicit gate for time-independent or instant-only models."
+    )

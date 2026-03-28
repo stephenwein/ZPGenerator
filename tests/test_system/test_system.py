@@ -1,4 +1,5 @@
 from zpgenerator.system.multibody import *
+from zpgenerator.system.emitter import EmitterBase
 from zpgenerator.system.natural import HamiltonianBase
 from zpgenerator.system.control import ControlledSystem
 from zpgenerator.time import unitary_propagation_superoperator
@@ -191,3 +192,15 @@ def test_multibodysystem_reports_incomplete_subsystem_state_tensoring_clearly():
 
     with pytest.raises(ValueError, match="building multibody operators"):
         _ = system.operators
+
+
+def test_multibodysystem_rejects_duplicate_transition_names():
+    emitter0 = EmitterBase(environment=[destroy(2)], transitions=[destroy(2)], name='left')
+    emitter0.transition_names = ['signal']
+    emitter1 = EmitterBase(environment=[destroy(2)], transitions=[destroy(2)], name='right')
+    emitter1.transition_names = ['signal']
+
+    system = MultiBodyEmitterBase(subsystems=[emitter0, emitter1])
+
+    with pytest.raises(ValueError, match="must be unique across combined emitters"):
+        _ = system.transition_names

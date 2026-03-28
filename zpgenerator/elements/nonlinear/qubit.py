@@ -69,3 +69,7 @@ class TwoLevelEmitter(EmitterBase):
 
         super().__init__()
         self.set_system(system=system, transitions=transitions)
+        if modes == 1:
+            self.transition_names = [name] if name else ['direct']
+        else:
+            self.transition_names = [f'direct_{i}' for i in range(modes)]

@@ -103,6 +103,19 @@ class MultiBodyEmitterBase(AQuantumMultiBodyEmitter, SystemCollection):
         return sum(system.modes for system in self._subsystems)
 
     @property
+    def transition_names(self):
+        names = []
+        for system in self._subsystems:
+            if getattr(system, 'is_emitter', False):
+                names += list(getattr(system, 'transition_names', [f'mode_{i}' for i in range(system.modes)]))
+        if len(set(names)) != len(names):
+            raise ValueError(
+                "Transition names must be unique across combined emitters. "
+                "Rename overlapping channels before exposing them through one source."
+            )
+        return names
+
+    @property
     def initial_state(self):
         return self._initial_state
 

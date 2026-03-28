@@ -1,5 +1,5 @@
 from ...elements import Emitter
-from .base_source import GatedSourceComponent
+from .base_source import GatedSourceComponent, source_from_emitter
 from ...time import TimeInterval, Operator, PulseBase
 from ...time.parameters import parinit
 from ...dynamic.control import Control
@@ -42,5 +42,10 @@ class TrionSource(GatedSourceComponent):
 
         gate = TimeInterval.source_gate(pulse, parameters=parameters) if gate is None else gate
 
-        super().__init__(emitter=emitter, gate=gate, efficiency=efficiency, name=name)
+        source = source_from_emitter(emitter=emitter,
+                                     gate=gate,
+                                     efficiency=efficiency,
+                                     parameters=parameters,
+                                     name=name)
+        self.__dict__ = source.__dict__
         self.default_name = '_Trion'
