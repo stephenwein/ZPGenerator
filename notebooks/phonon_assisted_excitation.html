@@ -1,0 +1,501 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Phonon-assisted excitation &mdash; ZPGenerator 0.3.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css" />
+
+  
+      <script src="../_static/jquery.js"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+      <script src="../_static/doctools.js"></script>
+      <script src="../_static/sphinx_highlight.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Trion in a polarized cavity" href="trion_cavity.html" />
+    <link rel="prev" title="Entanglement Generation" href="entanglement_generation.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ZPGenerator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pulses.html">Pulses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processors.html">Processors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backend.html">Backend</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Catalogue Components</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sources_catalogue.html">Sources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="circuits_catalogue.html">Circuits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detectors_catalogue.html">Detectors</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Basic Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="photonic_circuits.html">Photonic Circuits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pulsed_sources.html">Pulsed Sources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quantum_dots.html">Quantum Dots</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cavity_QED.html">Cavity QED</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Advanced Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="fibonacci_states.html">Fibonacci States</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wigner_functions.html">Wigner Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="entanglement_generation.html">Entanglement Generation</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Phonon-assisted excitation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Table-of-contents">Table of contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#1.-Theory-background">1. Theory background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#2.-Photoluminescence-excitation">2. Photoluminescence excitation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#3.-Lifetime">3. Lifetime</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#4.-Photon-statistics">4. Photon statistics</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#5.-Custom-pulse-shapes">5. Custom pulse shapes</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="trion_cavity.html">Trion in a polarized cavity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RUS_gate.html">The RUS Gate</a></li>
+<li class="toctree-l1"><a class="reference internal" href="component_construction.html">Component Construction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Code Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/code_reference.html">Code Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ZPGenerator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Phonon-assisted excitation</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/phonon_assisted_excitation.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Phonon-assisted-excitation">
+<h1>Phonon-assisted excitation<a class="headerlink" href="#Phonon-assisted-excitation" title="Permalink to this heading"></a></h1>
+<section id="Table-of-contents">
+<h2>Table of contents<a class="headerlink" href="#Table-of-contents" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Theory background</p></li>
+<li><p>Photoluminescence excitation</p></li>
+<li><p>Lifetime</p></li>
+<li><p>Photon statistics</p></li>
+<li><p>Custom pulse shapes</p></li>
+</ul>
+</section>
+<section id="1.-Theory-background">
+<h2>1. Theory background<a class="headerlink" href="#1.-Theory-background" title="Permalink to this heading"></a></h2>
+<p>The theory of phonon-assisted excitation is relatively complicated compared to other sources demonstrated in other example notebooks. Luckily, there are many great references that give clarity beyond what can be said in this brief section. An interested reader may want to start with:</p>
+<ol class="arabic simple">
+<li><p><a class="reference external" href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.114.137401">J. H. Quilter et al., Phonon-Assisted Population Inversion of a Single InGaAs/GaAs Quantum Dot by Pulsed Laser Excitation, Phys. Rev. Lett. 114, 137401 (2015).</a></p></li>
+<li><p><a class="reference external" href="https://journals.aps.org/prb/abstract/10.1103/PhysRevB.94.045306">A. M. Barth et al., Fast and selective phonon-assisted state preparation of a quantum dot by adiabatic undressing, Phys. Rev. B 94, 045306 (2016).</a></p></li>
+<li><p><a class="reference external" href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.123.017403">M. Cosacchi et al., Emission-Frequency Separated High Quality Single Photon Sources Enabled by Phonons, Phys. Rev. Lett. 123, 017403 (2019).</a></p></li>
+<li><p><a class="reference external" href="https://onlinelibrary.wiley.com/doi/abs/10.1002/qute.201900073">C. Gustin and S. Hughes, Efficient pulse-excitation techniques for single photon sources from quantum dots in optical cavities, Adv. Quantum Technol. 3, 1900073 (2020).</a></p></li>
+<li><p><a class="reference external" href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.126.233601">S. E. Thomas et al., Bright Polarized Single-Photon Source Based on a Linear Dipole, Phys. Rev. Lett. 126, 233601 (2021).</a></p></li>
+</ol>
+<p>The catalogue phonon-assisted source model used in ZPG is based on the fourth reference above and can be constructed with <code class="docutils literal notranslate"><span class="pre">Source.phonon_assisted()</span></code>. The master equation of the form <span class="math notranslate nohighlight">\(\dot{ ho}(t)=\mathcal{L}(t)\hat{ ho}(t)\)</span> that defines this source is</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}(t) = \mathcal{L}_\mathrm{purcell}(t) + \mathcal{L}_\mathrm{ph.}(t)\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathcal{L}_\mathrm{purcell}\)</span> is the master equation defining the <code class="docutils literal notranslate"><span class="pre">Source.purcell()</span></code> catalogue source. The phonon superoperator is</p>
+<div class="math notranslate nohighlight">
+\[\mathcal{L}_\mathrm{ph.} = -i\mathcal{H}_\mathrm{ph.}+\gamma^\star_\mathrm{ph.}\mathcal{D}_\hat{N}+(\Omega_y c_1-\Omega_x c_2)\hat{O}_x^+ + i(\Omega_y c_3-\Omega_x c_4)\hat{O}_x^- -(\Omega_x c_1+\Omega_y c_2)\hat{O}_y^+ - i(\Omega_x c_3+\Omega_y c_4)\mathcal{O}_y^- ,\]</div>
+<p>where <span class="math notranslate nohighlight">\(\mathcal{H}_\mathrm{ph.}\hat{ ho}=-[\Delta_\mathrm{ph.},\hat{ ho}]\)</span> is the polaron shift, <span class="math notranslate nohighlight">\(\hat{N}=\hat{\sigma}^\dagger\hat{\sigma}\)</span>, and <span class="math notranslate nohighlight">\(\mathcal{O}_i^\pm\hat{ ho} = \hat{\sigma}_i\hat{ ho}\hat{N} - \hat{N}\hat{\sigma}_i\hat{ ho} \pm \mathrm{H.c.}\)</span>. The Rabi frequencies <span class="math notranslate nohighlight">\(\Omega_x\)</span> and <span class="math notranslate nohighlight">\(\Omega_y\)</span>, corresponding to the real and imaginary parts of the excitation pulse, are time dependent. In addition, the coefficients <span class="math notranslate nohighlight">\(c_i\)</span> and the phonon-induced
+power-dependent pure-dephasing rate <span class="math notranslate nohighlight">\(\gamma^\star_\mathrm{ph.}\)</span> are all time dependent and related to the phonon spectral density <span class="math notranslate nohighlight">\(J_\mathrm{ph.}(\omega)\)</span> by</p>
+<div class="math notranslate nohighlight">
+\[egin{aligned}
+c_1 &amp;=  rac{\mathrm{Re}(R_s)}{\Omega_R} \
+c_2 &amp;=  rac{\Delta_\sigma\mathrm{Re}(R_c)}{\Omega_R^2} \
+c_3 &amp;=  rac{\mathrm{Im}(R_s)}{\Omega_R} \
+c_4 &amp;=  rac{\Delta_\sigma}{\Omega_R^2} \left( rac{\Delta_{\mathrm{p}}}{2} + \mathrm{Im}(R_c)
+ight) \
+\gamma^\star_\mathrm{ph.} &amp;= 4 rac{\Omega_x^2+\Omega_y^2}{\Omega_R}\mathrm{Re}(R_c)
+\end{aligned}\]</div>
+<p>where <span class="math notranslate nohighlight">\(\Omega_R(t)=\sqrt{\Delta_\sigma^2 + \Omega_x^2(t) + \Omega_y^2(t)}\)</span> is the effective Rabi frequency for a constant laser detuning of <span class="math notranslate nohighlight">\(-\Delta\)</span>, and</p>
+<div class="math notranslate nohighlight">
+\[egin{aligned}
+R_s(t) &amp;=  rac{1}{2}\int_0^\infty d au\,\Gamma( au)\sin(\Omega_R(t) au) \
+R_c(t) &amp;=  rac{1}{2}\int_0^\infty d au\,\Gamma( au)\cos(\Omega_R(t) au)
+\end{aligned}\]</div>
+<p>with</p>
+<div class="math notranslate nohighlight">
+\[\Gamma( au) = \int_0^\infty d\omega\, J_{\mathrm{ph.}}(\omega)\left[\mathrm{coth}\left( rac{\hbar\omega}{2k_B T}
+ight)\cos(\omega    au)-i\sin(\omega    au)
+ight].\]</div>
+<p>The polaron shift can also be written as</p>
+<div class="math notranslate nohighlight">
+\[\Delta_\mathrm{ph.} = i\int_0^\infty d  au\, \Gamma_\mathrm{ph.}(   au).\]</div>
+<p>Overall, the parameters that impact this system are the same as for <code class="docutils literal notranslate"><span class="pre">Source.purcell()</span></code>, with the additional option of specifying a phonon-bath temperature and a material type. At the moment, the built-in material choice is an InGaAs/GaAs quantum dot.</p>
+</section>
+<section id="2.-Photoluminescence-excitation">
+<h2>2. Photoluminescence excitation<a class="headerlink" href="#2.-Photoluminescence-excitation" title="Permalink to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">zpgenerator</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">resonance_scan_parameters</span><span class="p">(</span><span class="n">detuning</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;emitter/resonance&#39;</span><span class="p">:</span> <span class="o">-</span><span class="n">detuning</span><span class="p">,</span>
+        <span class="s1">&#39;cavity/resonance&#39;</span><span class="p">:</span> <span class="o">-</span><span class="n">detuning</span><span class="p">,</span>
+        <span class="o">**</span><span class="p">(</span><span class="n">parameters</span> <span class="ow">or</span> <span class="p">{}),</span>
+    <span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<p>To test the phonon-assisted excitation scheme, we will use InGaAs/GaAs quantum dot at a temperature of 7 K with a modest Purcell enhancement of 10 from a cavity operating in the bad-cavity regime (0.1). Also, because the scheme can be sensitive to pulses with strange features, we will use a standard Gaussian pulse with a width of 8 ps compared to a Purcell-enhanced lifetime of 110 ps.</p>
+<p>In the code below, we use a small helper to shift both <code class="docutils literal notranslate"><span class="pre">emitter/resonance</span></code> and <code class="docutils literal notranslate"><span class="pre">cavity/resonance</span></code> together. That keeps the laser pulse fixed in its rotating frame while we sweep the QD-cavity system relative to it.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pulse</span> <span class="o">=</span> <span class="n">Pulse</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mi">10</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">2</span><span class="p">))})</span> <span class="c1"># width in ps</span>
+<span class="n">source</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">phonon_assisted</span><span class="p">(</span><span class="n">pulse</span><span class="o">=</span><span class="n">pulse</span><span class="p">,</span>
+                                <span class="n">purcell_factor</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                                <span class="n">regime</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>  <span class="c1"># coupling regime parameter (lower is further into the weak coupling regime)</span>
+                                <span class="n">timescale</span><span class="o">=</span><span class="mi">110</span><span class="p">,</span>  <span class="c1"># Purcell-enhanced decay timescale in ps</span>
+                                <span class="n">temperature</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>  <span class="c1"># Temperature in Kelvin</span>
+                                <span class="n">material</span><span class="o">=</span><span class="n">Material</span><span class="o">.</span><span class="n">ingaas_quantum_dot</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">source</span><span class="o">.</span><span class="n">beta</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">resonance_scan_parameters</span><span class="p">(</span><span class="mf">1.0</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;emitter/area&#39;</span><span class="p">:</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">}))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0.6266917984142405
+</pre></div></div>
+</div>
+<p>Now that we have made our source, we can begin to characterise it by performing some experiments. To get an idea of the region where phonon-assisted excitation can occur, we can perform a photo-luminescence excitation (PLE) experiment very similar to what we did to find two-photon excitation for the biexciton source (see ex_quantum_dots.ipynb). This involves sweeping the detuning between the excitation laser pulse and the source resonance while monitoring the emission intensity. Equivalently, it
+is simpler for the simulation to sweep the ‘resonance’ of the QD-cavity system in the opposite direction relative to a fixed laser frequency. This allows the simulation to remain in the rotating frame of the laser pulse and avoid having to simulate very fast oscillations.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">detunings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">31</span><span class="p">)</span>  <span class="c1"># sweep from -2/ps detuning up until 2/ps detuning</span>
+<span class="n">areas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">15</span><span class="p">,</span> <span class="mi">30</span><span class="p">)</span>  <span class="c1"># sweep pulse area from 0 to 15 units of pi</span>
+<span class="n">intensity</span> <span class="o">=</span> <span class="p">[[</span><span class="n">source</span><span class="o">.</span><span class="n">mu</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">resonance_scan_parameters</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;emitter/area&#39;</span><span class="p">:</span> <span class="n">a</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">}))</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detunings</span><span class="p">]</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">areas</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">pcolormesh</span><span class="p">(</span><span class="n">detunings</span><span class="p">,</span> <span class="n">areas</span><span class="p">,</span> <span class="n">intensity</span><span class="p">,</span> <span class="n">shading</span><span class="o">=</span><span class="s1">&#39;gouraud&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s2">&quot;Laser detuning ($1/ps$)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Pulse area ($\pi$)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_phonon_assisted_excitation_12_0.png" src="../_images/notebooks_phonon_assisted_excitation_12_0.png" />
+</div>
+</div>
+<p>From this map, we can identify two main features. First, we can see that there is a clear oscillation between bright and dark emission while increasing the pulse area at zero detuning. This shows that the emitter is undergoing Rabi oscillations due to the coherent driving. The second feature is a broad underlying resonance at a higher excitation pulse area, and when the detuning is positive (above the emitter transition line). This second feature is phonon-assisted excitation. To explore these
+two features in more detail, we can choose two detunings: (1) resonance <span class="math notranslate nohighlight">\(\delta=0\)</span> and (2) phonon-assisted <span class="math notranslate nohighlight">\(\delta=0.6\)</span> while increasing the power in finer steps.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">areas</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="n">intensity_rf</span> <span class="o">=</span> <span class="p">[</span><span class="n">source</span><span class="o">.</span><span class="n">mu</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">resonance_scan_parameters</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;emitter/area&#39;</span><span class="p">:</span> <span class="n">a</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">}))</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">areas</span><span class="p">]</span>
+<span class="n">intensity_la</span> <span class="o">=</span> <span class="p">[</span><span class="n">source</span><span class="o">.</span><span class="n">mu</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">resonance_scan_parameters</span><span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;emitter/area&#39;</span><span class="p">:</span> <span class="n">a</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">}))</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">areas</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">areas</span><span class="p">,</span> <span class="n">intensity_rf</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Resonance excitation&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">areas</span><span class="p">,</span> <span class="n">intensity_la</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Phonon-assisted excitation&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s2">&quot;Average photon number emitted&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="sa">r</span><span class="s2">&quot;Pulse area ($\pi$)&quot;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">])</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_phonon_assisted_excitation_15_0.png" src="../_images/notebooks_phonon_assisted_excitation_15_0.png" />
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">source</span><span class="o">.</span><span class="n">photon_statistics</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">resonance_scan_parameters</span><span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;emitter/area&#39;</span><span class="p">:</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">}))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{(0,): np.float64(0.3401220176595185), (1,): np.float64(0.6444117093701884), (2,): np.float64(0.01529302521475069), (3,): np.float64(0.00017322513164937383), (4,): np.float64(2.2623894002649083e-08)}
+</pre></div></div>
+</div>
+<p>From this plot, it is easier to see that phonon-assisted excitation can achieve a comparable emission probability to resonance excitation. In this case, the ratio is:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">max</span><span class="p">(</span><span class="n">intensity_la</span><span class="p">)</span><span class="o">/</span><span class="nb">max</span><span class="p">(</span><span class="n">intensity_rf</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+0.7934283429877246
+</pre></div></div>
+</div>
+<p>This is about 83% as bright as resonance excitation. That value is very close to the 85% measured in the lab for slightly different system parameters in <a class="reference external" href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.126.233601">S. E. Thomas et al., Phys. Rev. Lett. 126, 233601 (2021)</a>.</p>
+</section>
+<section id="3.-Lifetime">
+<h2>3. Lifetime<a class="headerlink" href="#3.-Lifetime" title="Permalink to this heading"></a></h2>
+<p>The emitter dressing, relaxation, and subsequent adiabatic undressing gives rise to a very particular-looking dynamic evolution of the emitter population. Let’s take a look at what this population evolution looks like for the source we defined in the previous section.</p>
+<p>By default, the phonon-assisted source has the spontaneous emission port of the quantum dot masked so that only the cavity emission is collected for use in a circuit. This means that the spontaneous emission port is closed by default. Since we wish to monitor the lifetime of the quantum dot itself, in addition to our desired photon, we can open all closed ports after creating our source.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pulse</span> <span class="o">=</span> <span class="n">Pulse</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mi">8</span><span class="p">})</span> <span class="c1"># width in ps</span>
+<span class="n">source</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">phonon_assisted</span><span class="p">(</span><span class="n">pulse</span><span class="o">=</span><span class="n">pulse</span><span class="p">,</span>
+                                <span class="n">purcell_factor</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+                                <span class="n">regime</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span>  <span class="c1"># coupling regime parameter (lower is further into the weak coupling regime)</span>
+                                <span class="n">timescale</span><span class="o">=</span><span class="mi">110</span><span class="p">,</span>  <span class="c1"># Purcell-enhanced decay timescale in ps</span>
+                                <span class="n">temperature</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span>  <span class="c1"># Temperature in Kelvin</span>
+                                <span class="n">material</span><span class="o">=</span><span class="n">Material</span><span class="o">.</span><span class="n">ingaas_quantum_dot</span><span class="p">())</span>
+<span class="n">source</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">open_all</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>Now, when we wish to compute properties of the source, we must specify which port we are targeting. In this case, the unmasked source as spontaneous emission as port 0 and cavity emission as port 1. Knowing this, let’s plot the lifetimes of both ports for a detuning of <span class="math notranslate nohighlight">\(\delta=0.6\)</span> and pulse area of <span class="math notranslate nohighlight">\(\Theta = 20\)</span>, in addition to the pulse. To make things visually clear, we can scale the shapes appropriately using the ‘scale’ keyword. In this case, if we scale the QD population by the
+inverse of its decay rate, we get exactly the occupation probability of the emitter excited state.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">parameters</span> <span class="o">=</span> <span class="n">resonance_scan_parameters</span><span class="p">(</span><span class="mf">0.6</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;emitter/area&#39;</span><span class="p">:</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">})</span>
+<span class="n">source</span><span class="o">.</span><span class="n">plot_lifetime</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">source</span><span class="o">.</span><span class="n">default_parameters</span><span class="p">[</span><span class="s1">&#39;emitter/decay&#39;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;QD Population&#39;</span><span class="p">)</span>
+<span class="n">source</span><span class="o">.</span><span class="n">plot_lifetime</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="s1">&#39;cavity&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="mi">150</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Cavity wavepacket shape&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">p</span> <span class="o">=</span> <span class="n">pulse</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">6</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Pulse magnitude&#39;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Time, t (ps)&#39;</span><span class="p">)</span>
+<span class="n">p</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_phonon_assisted_excitation_24_0.png" src="../_images/notebooks_phonon_assisted_excitation_24_0.png" />
+</div>
+</div>
+<p>From this plot, we can see that the QD population increases to about 1/2 at the peak of the Gaussian pulse. This indicates that the pulse has fully dressed the system and the phonon relaxation has begun to populate the lower-energy dressed eigenstate. As the pulse turns off, the higher and lower-energy eigenstates adiabatically return to their ground and excited states, respectively. This undressing pushes the QD population up into the excited state, as illustrated by the rising population as
+the pulse decays. Meanwhile, the cavity begins to produce light, as illustrated by the orange curve. During the pulse, there is a remnant emission occurring, which is actually undesired as it indicates that the system has relaxed to the ground state during the pulse, allow for possible re-excitation and subsequent multi-photon emission. However, the vast majority of the emission occurs as the pulse decays and the QD population is then accelerated through the cavity mode via the Purcell effect,
+leading to efficient single-photon emission.</p>
+</section>
+<section id="4.-Photon-statistics">
+<h2>4. Photon statistics<a class="headerlink" href="#4.-Photon-statistics" title="Permalink to this heading"></a></h2>
+<p>Once we have set up our source, it is easy to check other characteristics, such as the amount of multi-photon emission. Let’s take a look at the brightness (probability of emitting at least one photon) and intensity correlation for a <span class="math notranslate nohighlight">\(\pi\)</span>-pulse excitation compared to a <span class="math notranslate nohighlight">\(20\pi\)</span>-pulse excitation, both as a function of detuning. Recall that, in the previous section, we opened all ports of the source. To compute the photon statistics for emission from the cavity mode, we can now specify
+port=’cavity’.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">detunings</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="o">-</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">200</span><span class="p">)</span>
+<span class="n">stats_pi</span> <span class="o">=</span> <span class="p">[</span><span class="n">source</span><span class="o">.</span><span class="n">photon_statistics</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="s1">&#39;cavity&#39;</span><span class="p">,</span> <span class="n">truncation</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">resonance_scan_parameters</span><span class="p">(</span><span class="n">d</span><span class="p">))</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detunings</span><span class="p">]</span>
+<span class="n">stats_20pi</span> <span class="o">=</span> <span class="p">[</span><span class="n">source</span><span class="o">.</span><span class="n">photon_statistics</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="s1">&#39;cavity&#39;</span><span class="p">,</span> <span class="n">truncation</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">resonance_scan_parameters</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="p">{</span><span class="s1">&#39;emitter/area&#39;</span><span class="p">:</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">}))</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="n">detunings</span><span class="p">]</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="p">,</span> <span class="p">(</span><span class="n">ax1</span><span class="p">,</span> <span class="n">ax2</span><span class="p">)</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">10</span><span class="p">,</span> <span class="mi">5</span><span class="p">))</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">detunings</span><span class="p">,</span> <span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">beta</span><span class="p">()</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">stats_pi</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\theta$ = $\pi$&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">detunings</span><span class="p">,</span> <span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">beta</span><span class="p">()</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">stats_20pi</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\theta$ = 20 $\pi$&#39;</span><span class="p">)</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">ax1</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Detuning (1/ps)&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Brightness&#39;</span><span class="p">)</span>
+
+<span class="n">ax2</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">detunings</span><span class="p">,</span> <span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">g2</span><span class="p">()</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">stats_pi</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\theta$ = $\pi$&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">semilogy</span><span class="p">(</span><span class="n">detunings</span><span class="p">,</span> <span class="p">[</span><span class="n">ps</span><span class="o">.</span><span class="n">g2</span><span class="p">()</span> <span class="k">for</span> <span class="n">ps</span> <span class="ow">in</span> <span class="n">stats_20pi</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="sa">r</span><span class="s1">&#39;$\theta$ = 20 $\pi$&#39;</span><span class="p">)</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">ax2</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Detuning (1/ps)&#39;</span><span class="p">,</span> <span class="n">ylabel</span><span class="o">=</span><span class="s1">&#39;Intensity correlation&#39;</span><span class="p">,</span> <span class="n">ylim</span><span class="o">=</span><span class="p">[</span><span class="mf">0.01</span><span class="p">,</span> <span class="mi">2</span><span class="p">])</span>
+<span class="n">fig</span><span class="o">.</span><span class="n">tight_layout</span><span class="p">(</span><span class="n">pad</span><span class="o">=</span><span class="mf">3.0</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_phonon_assisted_excitation_29_0.png" src="../_images/notebooks_phonon_assisted_excitation_29_0.png" />
+</div>
+</div>
+<p>In the left panel, we can identify the QD-cavity resonance (blue curve) around a zero detuning, corresponding to the resonance excitation condition. However, we can also identify the phonon sideband as a broad lower-intensity resonance. In this case, the curve looks stepped due to rounding after the statistics truncation. At higher excitation pulse area, we can see the phonon-assisted region at positive detuning, reaching nearly as high as the peak resonance excitation value. In the right panel,
+we can see a very interesting double-peak feature when driving the system with a <span class="math notranslate nohighlight">\(\pi\)</span>-pulse. The dip corresponds to the resonance excitation condition, while the side peaks actually correspond to detunings where the effective Rabi frequency performs an effective <span class="math notranslate nohighlight">\(2\pi\)</span> pulse. This quick suppression in QD population coincides with a bunching effect, pushing the intensity correlation above that of a coherent state. On the other hand, at higher pulse area of <span class="math notranslate nohighlight">\(20\pi\)</span>, we see an
+even smaller multi-photon emission in the phonon-assisted regime.</p>
+</section>
+<section id="5.-Custom-pulse-shapes">
+<h2>5. Custom pulse shapes<a class="headerlink" href="#5.-Custom-pulse-shapes" title="Permalink to this heading"></a></h2>
+<p>Due to the general scope of the ZPG backend, we are not restricted to pre-defined pulse shapes. Instead, we can supply our phonon-assisted source with a custom pulse shape constructed from interpolating functions and the Pulse.custom() class method.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">scipy.interpolate</span><span class="w"> </span><span class="kn">import</span> <span class="n">interp1d</span>
+
+<span class="n">pulse_shape</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">([</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">,</span> <span class="mf">0.4</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;quadratic&#39;</span><span class="p">)</span>
+<span class="n">pulse_phase</span> <span class="o">=</span> <span class="n">interp1d</span><span class="p">([</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span> <span class="o">-</span><span class="mi">10</span><span class="p">,</span> <span class="o">-</span><span class="mi">5</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">],</span> <span class="n">kind</span><span class="o">=</span><span class="s1">&#39;quadratic&#39;</span><span class="p">)</span>
+
+<span class="n">custom_pulse</span> <span class="o">=</span> <span class="n">Pulse</span><span class="o">.</span><span class="n">custom</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="k">lambda</span> <span class="n">t</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="n">args</span><span class="p">[</span><span class="s1">&#39;area&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">abs</span><span class="p">(</span><span class="n">pulse_shape</span><span class="p">(</span><span class="n">t</span><span class="p">))</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mf">1.</span><span class="n">j</span> <span class="o">*</span> <span class="n">pulse_phase</span><span class="p">(</span><span class="n">t</span><span class="p">)),</span>
+                            <span class="n">gate</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="mi">20</span><span class="p">,</span> <span class="mi">20</span><span class="p">],</span>  <span class="c1">#  specify the time interval for the pulse (it will be 0 elsewhere)</span>
+                            <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;area&#39;</span><span class="p">:</span> <span class="mi">20</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">},</span>  <span class="c1"># specify any parameters used in the shape and their defaults</span>
+                            <span class="n">auto_normalise</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>  <span class="c1"># automatically normalize the shape</span>
+                            <span class="n">norm</span><span class="o">=</span><span class="mi">20</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">)</span>  <span class="c1"># specify what the normalization should be for default parameters</span>
+
+<span class="n">source</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">phonon_assisted</span><span class="p">(</span><span class="n">pulse</span><span class="o">=</span><span class="n">custom_pulse</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">resonance_scan_parameters</span><span class="p">(</span><span class="mf">0.6</span><span class="p">),</span>
+                                <span class="n">purcell_factor</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">regime</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">timescale</span><span class="o">=</span><span class="mi">110</span><span class="p">,</span>
+                                <span class="n">temperature</span><span class="o">=</span><span class="mi">7</span><span class="p">,</span> <span class="n">material</span><span class="o">=</span><span class="n">Material</span><span class="o">.</span><span class="n">ingaas_quantum_dot</span><span class="p">())</span>
+<span class="n">source</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">open_all</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">source</span><span class="o">.</span><span class="n">plot_lifetime</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="n">source</span><span class="o">.</span><span class="n">default_parameters</span><span class="p">[</span><span class="s1">&#39;emitter/decay&#39;</span><span class="p">],</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;QD Population&#39;</span><span class="p">)</span>
+<span class="n">source</span><span class="o">.</span><span class="n">plot_lifetime</span><span class="p">(</span><span class="n">port</span><span class="o">=</span><span class="s1">&#39;cavity&#39;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Photon shape&#39;</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="mi">150</span><span class="p">)</span>
+<span class="n">custom_pulse</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">10</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Pulse magnitude&#39;</span><span class="p">)</span>
+<span class="n">custom_pulse</span><span class="o">.</span><span class="n">plot_phase</span><span class="p">(</span><span class="n">scale</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">50</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Pulse phase&#39;</span><span class="p">,</span> <span class="n">xlabel</span><span class="o">=</span><span class="s1">&#39;Time, t (ps)&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_phonon_assisted_excitation_34_0.png" src="../_images/notebooks_phonon_assisted_excitation_34_0.png" />
+</div>
+</div>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="entanglement_generation.html" class="btn btn-neutral float-left" title="Entanglement Generation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="trion_cavity.html" class="btn btn-neutral float-right" title="Trion in a polarized cavity" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Quandela.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

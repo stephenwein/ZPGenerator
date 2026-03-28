@@ -1,0 +1,312 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Component Construction &mdash; ZPGenerator 0.3.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css" />
+
+  
+      <script src="../_static/jquery.js"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+      <script src="../_static/doctools.js"></script>
+      <script src="../_static/sphinx_highlight.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Code Reference" href="../reference/code_reference.html" />
+    <link rel="prev" title="The RUS Gate" href="RUS_gate.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ZPGenerator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pulses.html">Pulses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processors.html">Processors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backend.html">Backend</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Catalogue Components</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sources_catalogue.html">Sources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="circuits_catalogue.html">Circuits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detectors_catalogue.html">Detectors</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Basic Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="photonic_circuits.html">Photonic Circuits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pulsed_sources.html">Pulsed Sources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quantum_dots.html">Quantum Dots</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cavity_QED.html">Cavity QED</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Advanced Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="fibonacci_states.html">Fibonacci States</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wigner_functions.html">Wigner Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="entanglement_generation.html">Entanglement Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phonon_assisted_excitation.html">Phonon-assisted excitation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trion_cavity.html">Trion in a polarized cavity</a></li>
+<li class="toctree-l1"><a class="reference internal" href="RUS_gate.html">The RUS Gate</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Component Construction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Imports">Imports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Example-1.-A-custom-driven-two-level-source">Example 1. A custom driven two-level source</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Example-2.-A-multi-port-source-from-monitored-channels">Example 2. A multi-port source from monitored channels</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#When-to-use-each-construction-path">When to use each construction path</a></li>
+</ul>
+</li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Code Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/code_reference.html">Code Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ZPGenerator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Component Construction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/component_construction.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="Component-Construction">
+<h1>Component Construction<a class="headerlink" href="#Component-Construction" title="Permalink to this heading"></a></h1>
+<p>This page shows the most direct path for building a custom source when you already have a master-equation model in mind. The new <code class="docutils literal notranslate"><span class="pre">Emitter.from_master_equation(...)</span></code> and <code class="docutils literal notranslate"><span class="pre">Source.from_master_equation(...)</span></code> entry points are designed for users coming from QuTiP: you provide a Hamiltonian, a set of monitored collapse operators, any additional environment operators, and an initial state. ZPG then turns that model into an emitter or source with the usual source-quality and processor interfaces.</p>
+<p>For source construction, monitored channels are special in two ways: they contribute to the dissipative master equation, and they define the exposed source output ports. When a source has more than one monitored channel, it is often best to pass them as a dictionary so the output ports get stable names immediately.</p>
+<section id="Imports">
+<h2>Imports<a class="headerlink" href="#Imports" title="Permalink to this heading"></a></h2>
+<p>We will use the top-level ZPG imports together with a few basic QuTiP operators.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">zpgenerator</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qutip</span><span class="w"> </span><span class="kn">import</span> <span class="n">basis</span><span class="p">,</span> <span class="n">destroy</span><span class="p">,</span> <span class="n">create</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Example-1.-A-custom-driven-two-level-source">
+<h2>Example 1. A custom driven two-level source<a class="headerlink" href="#Example-1.-A-custom-driven-two-level-source" title="Permalink to this heading"></a></h2>
+<p>Suppose we already know the master equation of a driven two-level system. The monitored collapse operator is the radiative decay channel that we want to collect as source output. Since the Gaussian pulse has finite time support, <code class="docutils literal notranslate"><span class="pre">Source.from_master_equation(...)</span></code> can infer a reasonable default source gate if we opt in explicitly with <code class="docutils literal notranslate"><span class="pre">infer_gate=True</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">states</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;|g&gt;&#39;</span><span class="p">:</span> <span class="n">basis</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;|e&gt;&#39;</span><span class="p">:</span> <span class="n">basis</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)}</span>
+<span class="n">operators</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s1">&#39;lower&#39;</span><span class="p">:</span> <span class="n">destroy</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+    <span class="s1">&#39;raise&#39;</span><span class="p">:</span> <span class="n">create</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+    <span class="s1">&#39;number&#39;</span><span class="p">:</span> <span class="n">create</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">destroy</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span>
+<span class="p">}</span>
+
+<span class="n">pulse</span> <span class="o">=</span> <span class="n">Pulse</span><span class="o">.</span><span class="n">gaussian</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span> <span class="s1">&#39;area&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">})</span>
+<span class="n">drive</span> <span class="o">=</span> <span class="n">TimeOperator</span><span class="p">(</span><span class="n">operator</span><span class="o">=</span><span class="p">(</span><span class="n">operators</span><span class="p">[</span><span class="s1">&#39;lower&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">operators</span><span class="p">[</span><span class="s1">&#39;raise&#39;</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">functions</span><span class="o">=</span><span class="n">pulse</span><span class="p">)</span>
+
+<span class="n">source</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">from_master_equation</span><span class="p">(</span>
+    <span class="n">hamiltonian</span><span class="o">=</span><span class="n">drive</span><span class="p">,</span>
+    <span class="n">monitored</span><span class="o">=</span><span class="p">[</span><span class="n">operators</span><span class="p">[</span><span class="s1">&#39;lower&#39;</span><span class="p">]],</span>
+    <span class="n">initial_state</span><span class="o">=</span><span class="s1">&#39;|g&gt;&#39;</span><span class="p">,</span>
+    <span class="n">infer_gate</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">states</span><span class="o">=</span><span class="n">states</span><span class="p">,</span>
+    <span class="n">operators</span><span class="o">=</span><span class="n">operators</span><span class="p">,</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;custom source&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">source</span><span class="o">.</span><span class="n">default_parameters</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+{&#39;width&#39;: 0.2,
+ &#39;area&#39;: 3.141592653589793,
+ &#39;delay&#39;: 0,
+ &#39;detuning&#39;: 0,
+ &#39;phase&#39;: 0,
+ &#39;window&#39;: 6,
+ &#39;efficiency&#39;: 1}
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">source</span><span class="o">.</span><span class="n">times</span><span class="p">(),</span> <span class="n">source</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">open_modes</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+([-1.2000000000000002, 1.2000000000000002], 1)
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">source</span><span class="o">.</span><span class="n">beta</span><span class="p">(),</span> <span class="n">source</span><span class="o">.</span><span class="n">mu</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(0.6860592714826821, 0.7233010102061677)
+</pre></div></div>
+</div>
+<p>The resulting object behaves like any other catalogue source. It can be passed into a <code class="docutils literal notranslate"><span class="pre">Processor</span></code>, queried with the standard source-quality methods, or composed into larger photonic networks.</p>
+</section>
+<section id="Example-2.-A-multi-port-source-from-monitored-channels">
+<h2>Example 2. A multi-port source from monitored channels<a class="headerlink" href="#Example-2.-A-multi-port-source-from-monitored-channels" title="Permalink to this heading"></a></h2>
+<p>For a user coming from QuTiP, the most important extra concept in ZPG is the distinction between ordinary environment operators and <em>monitored</em> operators. The monitored operators both contribute to the dissipative master equation and define source output ports.</p>
+<p>In the example below, we build a simple three-level V-system with two monitored decay channels. Because the model is time-independent, we provide an explicit gate. By passing the monitored operators as a dictionary, the two source outputs are named <code class="docutils literal notranslate"><span class="pre">x</span></code> and <code class="docutils literal notranslate"><span class="pre">y</span></code>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">states_v</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;|g&gt;&#39;</span><span class="p">:</span> <span class="n">basis</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="s1">&#39;|x&gt;&#39;</span><span class="p">:</span> <span class="n">basis</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="s1">&#39;|y&gt;&#39;</span><span class="p">:</span> <span class="n">basis</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">)}</span>
+<span class="n">lower_x</span> <span class="o">=</span> <span class="n">states_v</span><span class="p">[</span><span class="s1">&#39;|g&gt;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">states_v</span><span class="p">[</span><span class="s1">&#39;|x&gt;&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dag</span><span class="p">()</span>
+<span class="n">lower_y</span> <span class="o">=</span> <span class="n">states_v</span><span class="p">[</span><span class="s1">&#39;|g&gt;&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="n">states_v</span><span class="p">[</span><span class="s1">&#39;|y&gt;&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">dag</span><span class="p">()</span>
+<span class="n">initial</span> <span class="o">=</span> <span class="p">(</span><span class="n">states_v</span><span class="p">[</span><span class="s1">&#39;|x&gt;&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">states_v</span><span class="p">[</span><span class="s1">&#39;|y&gt;&#39;</span><span class="p">])</span><span class="o">.</span><span class="n">unit</span><span class="p">()</span>
+
+<span class="n">multiport</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">from_master_equation</span><span class="p">(</span>
+    <span class="n">hamiltonian</span><span class="o">=</span><span class="mi">0</span> <span class="o">*</span> <span class="p">(</span><span class="n">lower_x</span><span class="o">.</span><span class="n">dag</span><span class="p">()</span> <span class="o">*</span> <span class="n">lower_x</span><span class="p">),</span>
+    <span class="n">monitored</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;x&#39;</span><span class="p">:</span> <span class="n">lower_x</span><span class="p">,</span> <span class="s1">&#39;y&#39;</span><span class="p">:</span> <span class="n">lower_y</span><span class="p">},</span>
+    <span class="n">initial_state</span><span class="o">=</span><span class="n">initial</span><span class="p">,</span>
+    <span class="n">states</span><span class="o">=</span><span class="n">states_v</span><span class="p">,</span>
+    <span class="n">operators</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;lower_x&#39;</span><span class="p">:</span> <span class="n">lower_x</span><span class="p">,</span> <span class="s1">&#39;lower_y&#39;</span><span class="p">:</span> <span class="n">lower_y</span><span class="p">},</span>
+    <span class="n">gate</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">10</span><span class="p">],</span>
+    <span class="n">name</span><span class="o">=</span><span class="s1">&#39;v source&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+
+<span class="n">multiport</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">port_names</span><span class="p">,</span> <span class="n">multiport</span><span class="o">.</span><span class="n">output</span><span class="o">.</span><span class="n">open_port_names</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+([&#39;x&#39;, &#39;y&#39;], [&#39;x&#39;, &#39;y&#39;])
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">multiport</span><span class="o">.</span><span class="n">beta</span><span class="p">(</span><span class="s1">&#39;x&#39;</span><span class="p">),</span> <span class="n">multiport</span><span class="o">.</span><span class="n">beta</span><span class="p">(</span><span class="s1">&#39;y&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+(0.49997730003511875, 0.49997730003511875)
+</pre></div></div>
+</div>
+</section>
+<section id="When-to-use-each-construction-path">
+<h2>When to use each construction path<a class="headerlink" href="#When-to-use-each-construction-path" title="Permalink to this heading"></a></h2>
+<ul class="simple">
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">Source.from_master_equation(...)</span></code> when you already have a QuTiP-style model and want a source quickly.</p></li>
+<li><p>Use <code class="docutils literal notranslate"><span class="pre">Emitter.from_master_equation(...)</span></code> when you want to build an emitter first and then wrap or compose it yourself.</p></li>
+<li><p>Use the catalogue factories when one of the built-in physical models already matches what you need.</p></li>
+</ul>
+<p>This keeps the user-facing workflow simple while still leaving the lower-level emitter, control, and component abstractions available for more specialized models.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="RUS_gate.html" class="btn btn-neutral float-left" title="The RUS Gate" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../reference/code_reference.html" class="btn btn-neutral float-right" title="Code Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Quandela.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

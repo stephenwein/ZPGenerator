@@ -1,0 +1,986 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en">
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The RUS Gate &mdash; ZPGenerator 0.3.0 documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css" />
+      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css" />
+
+  
+      <script src="../_static/jquery.js"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+      <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+      <script src="../_static/doctools.js"></script>
+      <script src="../_static/sphinx_highlight.js"></script>
+      <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
+      <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
+      <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Component Construction" href="component_construction.html" />
+    <link rel="prev" title="Trion in a polarized cavity" href="trion_cavity.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            ZPGenerator
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Documentation</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="components.html">Components</a></li>
+<li class="toctree-l1"><a class="reference internal" href="parameters.html">Parameters</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pulses.html">Pulses</a></li>
+<li class="toctree-l1"><a class="reference internal" href="processors.html">Processors</a></li>
+<li class="toctree-l1"><a class="reference internal" href="backend.html">Backend</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Catalogue Components</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="sources_catalogue.html">Sources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="circuits_catalogue.html">Circuits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="detectors_catalogue.html">Detectors</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Basic Tutorials</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="photonic_circuits.html">Photonic Circuits</a></li>
+<li class="toctree-l1"><a class="reference internal" href="pulsed_sources.html">Pulsed Sources</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quantum_dots.html">Quantum Dots</a></li>
+<li class="toctree-l1"><a class="reference internal" href="cavity_QED.html">Cavity QED</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Advanced Tutorials</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="fibonacci_states.html">Fibonacci States</a></li>
+<li class="toctree-l1"><a class="reference internal" href="wigner_functions.html">Wigner Functions</a></li>
+<li class="toctree-l1"><a class="reference internal" href="entanglement_generation.html">Entanglement Generation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="phonon_assisted_excitation.html">Phonon-assisted excitation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="trion_cavity.html">Trion in a polarized cavity</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">The RUS Gate</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#Theory-background">Theory background</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Entangling-circuit">Entangling circuit</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Building-the-processor">Building the processor</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Local-corrections">Local corrections</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Gate-fidelity">Gate fidelity</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Repeat-until-success">Repeat until success</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#Imperfections">Imperfections</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#Pure-dephasing">Pure dephasing</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Realistic-excitation-pulses">Realistic excitation pulses</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#Combined-Imperfections">Combined Imperfections</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="component_construction.html">Component Construction</a></li>
+</ul>
+<p class="caption" role="heading"><span class="caption-text">Code Reference</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../reference/code_reference.html">Code Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">ZPGenerator</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">The RUS Gate</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/notebooks/RUS_gate.ipynb.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="The-RUS-Gate">
+<h1>The RUS Gate<a class="headerlink" href="#The-RUS-Gate" title="Permalink to this heading"></a></h1>
+<p>As we explored in the <a class="reference internal" href="entanglement_generation.html"><span class="doc">Entanglement Generation</span></a> advanced tutorial, a spin-photon interface such as a trion system can allow for the generation of entanglement between remote emitter spin qubits. It turns out that certain kinds of spin-photon interfaces can also allow for photon-mediated gates to be performed between the spin qubits, such as a control-Z rotation (CZ). This is generally much more difficult to accomplish than just entanglement generation because
+the interaction must be correct for any initial state of the spins, not just a predefined one that allows for the systems to become entangled.</p>
+<section id="Theory-background">
+<h2>Theory background<a class="headerlink" href="#Theory-background" title="Permalink to this heading"></a></h2>
+<p>This notebook explores one such approach that uses the polarization selection rules of the trion emitter along with an entangling circuit to implement a CZ gate. This gate was recently proposed as the main entangling gate in a spin-photon hybrid quantum computing architecture [<a class="reference external" href="https://arxiv.org/abs/2311.05605">G. de Gliniasty et al., arXiv:2311.05605 (2023)</a>]. As with most interactions mediated by detecting photons, this CZ gate is naturally probabilistic. However, in the ideal case where no
+photons are lost, a failure of the gate does not actually destroy the state of the spin qubits. This opens the possibility to repeat until success (RUS), following the ideas proposed in 2005 [<a class="reference external" href="https://journals.aps.org/prl/abstract/10.1103/PhysRevLett.95.030505">Y. L. Lim et al., Phys. Rev. Lett. 95, 030505 (2005)</a>].</p>
+<p>Instead of introducing the theory outright, a reader is invited to look at these two references. In any case, the necessary principles will be introduced when needed throughout this notebook.</p>
+</section>
+<section id="Entangling-circuit">
+<h2>Entangling circuit<a class="headerlink" href="#Entangling-circuit" title="Permalink to this heading"></a></h2>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="o">%</span><span class="k">matplotlib</span> inline
+<span class="kn">from</span><span class="w"> </span><span class="nn">zpgenerator</span><span class="w"> </span><span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">qutip</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">qt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qutip_qip.circuit</span><span class="w"> </span><span class="kn">import</span> <span class="n">QubitCircuit</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">qutip_qip.operations</span><span class="w"> </span><span class="kn">import</span> <span class="n">Gate</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">warnings</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">perceval</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pcvl</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">perceval.components.unitary_components</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">comp</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
+<span class="n">warnings</span><span class="o">.</span><span class="n">filterwarnings</span><span class="p">(</span>
+    <span class="s1">&#39;ignore&#39;</span><span class="p">,</span>
+    <span class="n">message</span><span class="o">=</span><span class="s1">&#39;FigureCanvasAgg is non-interactive, and thus cannot be shown&#39;</span><span class="p">,</span>
+    <span class="n">category</span><span class="o">=</span><span class="ne">UserWarning</span><span class="p">,</span>
+<span class="p">)</span>
+<br/></pre></div>
+</div>
+</div>
+<p>First, we will use Perceval to construct the linear-optical circuit we need to implement the photonic part of the RUS gate. This circuit is taken directly from Ref. [<a class="reference external" href="https://arxiv.org/abs/2311.05605">G. de Gliniasty et al., arXiv:2311.05605 (2023)</a>].</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">c</span> <span class="o">=</span> <span class="n">pcvl</span><span class="o">.</span><span class="n">Circuit</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pcvl</span><span class="o">.</span><span class="n">BS</span><span class="o">.</span><span class="n">H</span><span class="p">())</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">pcvl</span><span class="o">.</span><span class="n">BS</span><span class="o">.</span><span class="n">H</span><span class="p">())</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="n">comp</span><span class="o">.</span><span class="n">PERM</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">]))</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">pcvl</span><span class="o">.</span><span class="n">PS</span><span class="p">(</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mi">2</span><span class="p">))</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pcvl</span><span class="o">.</span><span class="n">BS</span><span class="o">.</span><span class="n">H</span><span class="p">())</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">pcvl</span><span class="o">.</span><span class="n">BS</span><span class="o">.</span><span class="n">H</span><span class="p">())</span>
+<span class="n">pcvl</span><span class="o">.</span><span class="n">pdisplay</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_7_0.svg" src="../_images/notebooks_RUS_gate_7_0.svg" /></div>
+</div>
+<p>Using the from_perceval() class method of the Circuit class in ZPGenerator, we can convert the Perceval circuit into a ZPGenerator circuit.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">c_rus</span> <span class="o">=</span> <span class="n">Circuit</span><span class="o">.</span><span class="n">from_perceval</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="Building-the-processor">
+<h2>Building the processor<a class="headerlink" href="#Building-the-processor" title="Permalink to this heading"></a></h2>
+<p>Now, let’s create the trion source. Similar to the polarization encoding example in the <a class="reference internal" href="entanglement_generation.html"><span class="doc">Entanglement Generation</span></a> tutorial, we must configure our trion source to be excited by horizontally-polarized light and collected in the R/L polarization basis. Since we are driving both R and L transitions, the effective <span class="math notranslate nohighlight">\(\pi\)</span>-pulse condition will correspond to a pulse area of <span class="math notranslate nohighlight">\(\sqrt{2}\pi\)</span>.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trion</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">trion</span><span class="p">()</span>
+<span class="n">trion</span><span class="o">.</span><span class="n">update_default_parameters</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;theta&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;phi&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;theta_c&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;phi_c&#39;</span><span class="p">:</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;area&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">})</span>
+</pre></div>
+</div>
+</div>
+<p>Now we can build the Processor with four number-resolving detectors monitoring the output of the RUS circuit.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">p_rus</span> <span class="o">=</span> <span class="n">Processor</span><span class="p">()</span> <span class="o">//</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">trion</span><span class="p">)</span> <span class="o">//</span> <span class="n">c_rus</span> <span class="o">//</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)),</span> <span class="n">Detector</span><span class="o">.</span><span class="n">pnr</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<p>To simulate the conditional channels associated with this photon-mediated spin gate, we must determine the spin basis of the two-qubit system. We can first take the ground states from the trion source, and then take the tensor product to obtain the list of 4 basis states for the two-source system.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">basis</span> <span class="o">=</span> <span class="p">[</span><span class="n">trion</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="s1">&#39;|spin_up&gt;&#39;</span><span class="p">],</span> <span class="n">trion</span><span class="o">.</span><span class="n">states</span><span class="p">[</span><span class="s1">&#39;|spin_down&gt;&#39;</span><span class="p">]]</span>
+<span class="n">basis</span> <span class="o">=</span> <span class="p">[</span><span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">b1</span><span class="p">,</span> <span class="n">b2</span><span class="p">)</span> <span class="k">for</span> <span class="n">b1</span> <span class="ow">in</span> <span class="n">basis</span> <span class="k">for</span> <span class="n">b2</span> <span class="ow">in</span> <span class="n">basis</span><span class="p">]</span>  <span class="c1"># take tensor products</span>
+</pre></div>
+</div>
+</div>
+<p>Now we are set up to simulate the conditional channels. Similar to the entanglement generation polarization encoding example notebook, we can select just the spin degree of freedom and trace away the atomic degree of freedom. For our two-trion system, the spin degrees correspond to indices 1 and 3.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">channels</span> <span class="o">=</span> <span class="n">p_rus</span><span class="o">.</span><span class="n">conditional_channels</span><span class="p">(</span><span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+</pre></div>
+</div>
+</div>
+<p>Just like that, we now have all conditional channels that evolve the two-spin space under the action of the RUS gate. For example, we expect the outcome (1, 0, 1, 0) to correspond to a successful CZ gate up to a local rotation. This means that we should be able to apply it to an initially unentangled state and find that it becomes entangled up to a re-normalization.</p>
+<p>Note that conditional_channels returns a dictionary of Qobj objects. To learn how to manipulate these, please see the <a class="reference external" href="https://qutip.org/docs/latest/apidoc/classes.html">QuTiP documentation</a>.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">initial_state</span> <span class="o">=</span> <span class="p">(</span><span class="n">qt</span><span class="o">.</span><span class="n">fock</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">+</span> <span class="n">qt</span><span class="o">.</span><span class="n">fock</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span> <span class="o">/</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>  <span class="c1"># spin superposition</span>
+<span class="n">initial_state</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">tensor</span><span class="p">(</span><span class="n">initial_state</span><span class="p">,</span> <span class="n">initial_state</span><span class="p">)</span>  <span class="c1"># initial state of two-qubit system (unentangled)</span>
+<span class="n">final_state</span> <span class="o">=</span> <span class="n">channels</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">](</span><span class="n">initial_state</span><span class="p">)</span>  <span class="c1"># apply the channel to the initial state</span>
+<span class="n">entanglement_efficiency</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">final_state</span><span class="o">.</span><span class="n">tr</span><span class="p">())</span>  <span class="c1"># the probability of the condition is simply the trace of the final state</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Efficiency:&#39;</span><span class="p">,</span> <span class="n">entanglement_efficiency</span><span class="p">)</span>
+<span class="n">final_state</span> <span class="o">=</span> <span class="n">final_state</span> <span class="o">/</span> <span class="n">entanglement_efficiency</span>  <span class="c1"># To post-select, we normalize the final state</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Concurrence:&#39;</span><span class="p">,</span> <span class="n">qt</span><span class="o">.</span><span class="n">concurrence</span><span class="p">(</span><span class="n">final_state</span><span class="p">))</span>
+<span class="n">final_state</span><span class="o">.</span><span class="n">tidyup</span><span class="p">(</span><span class="mf">1e-5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Efficiency: 0.1250002841445272
+Concurrence: 0.9999940397883986
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+Quantum object: dims=[[2, 2], [2, 2]], shape=(4, 4), type='oper', dtype=Dense, isherm=False$$\left(\begin{array}{cc}0.250 &amp; -0.250j &amp; 0.250j &amp; -0.250\\0.250j &amp; 0.250 &amp; -0.250 &amp; -0.250j\\-0.250j &amp; -0.250 &amp; 0.250 &amp; 0.250j\\-0.250 &amp; 0.250j &amp; -0.250j &amp; 0.250\end{array}\right)$$</div></div>
+</div>
+<p>As we can see, the outcome (1, 0, 1, 0) occurs with a probability of 1/8 and produces a maximally entangled spin state.</p>
+</section>
+<section id="Local-corrections">
+<h2>Local corrections<a class="headerlink" href="#Local-corrections" title="Permalink to this heading"></a></h2>
+<p>Similar to Bell-state measurements and fundamental to quantum communication, there are multiple outcomes that indicate a successful gate was applied to the qubits but only up to local corrections. Without corrections, averaging over all the successful outcomes will produce a channel that does not perform the desired gate. Let’s illustrate this explicitly by averaging over all the successful outcomes and seeing what it does to our initial state.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">successes</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span>
+<span class="n">channel_success</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">channels</span><span class="p">[</span><span class="n">success</span><span class="p">]</span> <span class="k">for</span> <span class="n">success</span> <span class="ow">in</span> <span class="n">successes</span><span class="p">)</span>
+<span class="n">final_state</span> <span class="o">=</span> <span class="n">channel_success</span><span class="p">(</span><span class="n">initial_state</span><span class="p">)</span>
+<span class="n">entanglement_efficiency</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">final_state</span><span class="o">.</span><span class="n">tr</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Efficiency:&#39;</span><span class="p">,</span> <span class="n">entanglement_efficiency</span><span class="p">)</span>
+<span class="n">final_state</span> <span class="o">=</span> <span class="n">final_state</span> <span class="o">/</span> <span class="n">entanglement_efficiency</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Concurrence:&#39;</span><span class="p">,</span> <span class="n">qt</span><span class="o">.</span><span class="n">concurrence</span><span class="p">(</span><span class="n">final_state</span><span class="p">))</span>
+<span class="n">final_state</span><span class="o">.</span><span class="n">tidyup</span><span class="p">(</span><span class="mf">1e-5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Efficiency: 0.5000011290581913
+Concurrence: 0.0
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+Quantum object: dims=[[2, 2], [2, 2]], shape=(4, 4), type='oper', dtype=Dense, isherm=False$$\left(\begin{array}{cc}0.250 &amp; 0 &amp; 0 &amp; -0.250\\0 &amp; 0.250 &amp; -0.250 &amp; 0\\0 &amp; -0.250 &amp; 0.250 &amp; 0\\-0.250 &amp; 0 &amp; 0 &amp; 0.250\end{array}\right)$$</div></div>
+</div>
+<p>We can see that we get a successful outcome with a 1/2 probability but the average state of the spin qubits is completely unentangled. This particular effect of destroying the entanglement by averaging the outcomes is the exact reason why faster-than-light communication cannot be achived using quantum communication. To recover an entangled state, it is necessary to communicate which outcome was observed in order to perform local corrections on the spin qubits. The corrections for each case are
+given in [<a class="reference external" href="https://arxiv.org/abs/2311.05605">G. de Gliniasty et al., arXiv:2311.05605 (2023)</a>]. For (1, 0, 1, 0) and (0, 1, 0, 1), the correction is <span class="math notranslate nohighlight">\(S_aS_b^\dagger\)</span> where <span class="math notranslate nohighlight">\(S_i=\sqrt{Z_i}\)</span> and <span class="math notranslate nohighlight">\(Z_i\)</span> is the Pauli Z gate applied to spin qubit <span class="math notranslate nohighlight">\(i\)</span>. For the other two successful outcomes (0, 1, 1, 0) and (1, 0, 0, 1), the correction is simply the conjugate <span class="math notranslate nohighlight">\(S_a^\dagger S_b\)</span>. We could, in principle, evaluate these local channels by simulating the time dynamics. If they
+are accomplished deterministically and without measuring light, a realistic local gate can be simulated using the devices module in qutip rather than ZPGenerator. For this example, we will simply construct the ideal gates using the qutip_qip circuit module.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">sa</span> <span class="o">=</span> <span class="n">Gate</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;RZ&#39;</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">arg_value</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">sb_dag</span> <span class="o">=</span> <span class="n">Gate</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;RZ&#39;</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">arg_value</span><span class="o">=-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">)</span>
+<span class="n">c</span> <span class="o">=</span> <span class="n">QubitCircuit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add_gate</span><span class="p">(</span><span class="n">sa</span><span class="p">)</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add_gate</span><span class="p">(</span><span class="n">sb_dag</span><span class="p">)</span>
+<span class="n">correction</span> <span class="o">=</span> <span class="n">prod</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">propagators</span><span class="p">())</span>
+<span class="n">correction_1</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">sprepost</span><span class="p">(</span><span class="n">correction</span><span class="p">,</span> <span class="n">correction</span><span class="o">.</span><span class="n">dag</span><span class="p">())</span>
+<span class="n">correction_2</span> <span class="o">=</span> <span class="n">correction_1</span><span class="o">.</span><span class="n">dag</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<p>We can now average over the channels after having applied the appropriate corrections to obtain to total successful channel.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">successes</span> <span class="o">=</span>  <span class="p">{(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="n">correction_1</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="n">correction_2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="n">correction_2</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="n">correction_1</span><span class="p">}</span>
+<span class="n">channel_success</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">correction</span> <span class="o">*</span> <span class="n">channels</span><span class="p">[</span><span class="n">outcome</span><span class="p">]</span> <span class="k">for</span> <span class="n">outcome</span><span class="p">,</span> <span class="n">correction</span> <span class="ow">in</span> <span class="n">successes</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+<span class="n">final_state</span> <span class="o">=</span> <span class="n">channel_success</span><span class="p">(</span><span class="n">initial_state</span><span class="p">)</span>
+<span class="n">entanglement_efficiency</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">final_state</span><span class="o">.</span><span class="n">tr</span><span class="p">())</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Efficiency:&#39;</span><span class="p">,</span> <span class="n">entanglement_efficiency</span><span class="p">)</span>
+<span class="n">final_state</span> <span class="o">=</span> <span class="n">final_state</span> <span class="o">/</span> <span class="n">entanglement_efficiency</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Concurrence:&#39;</span><span class="p">,</span> <span class="n">qt</span><span class="o">.</span><span class="n">concurrence</span><span class="p">(</span><span class="n">final_state</span><span class="p">))</span>
+<span class="n">final_state</span><span class="o">.</span><span class="n">tidyup</span><span class="p">(</span><span class="mf">1e-5</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Efficiency: 0.5000011290581913
+Concurrence: 0.9999951773730602
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="math notranslate nohighlight">
+Quantum object: dims=[[2, 2], [2, 2]], shape=(4, 4), type='oper', dtype=Dense, isherm=False$$\left(\begin{array}{cc}0.250 &amp; 0.250 &amp; 0.250 &amp; -0.250\\0.250 &amp; 0.250 &amp; 0.250 &amp; -0.250\\0.250 &amp; 0.250 &amp; 0.250 &amp; -0.250\\-0.250 &amp; -0.250 &amp; -0.250 &amp; 0.250\end{array}\right)$$</div></div>
+</div>
+<p>As we can see, the channel now appears to perform a successful CZ gate with a probability of 1/2 as desired. However, to be sure that we have a CZ gate and are not simply replicating the action of a CZ on one initial state, we must check the fidelity of our channel.</p>
+</section>
+<section id="Gate-fidelity">
+<h2>Gate fidelity<a class="headerlink" href="#Gate-fidelity" title="Permalink to this heading"></a></h2>
+<p>To understand how close our protocol implements a CZ gate, we can look at the average gate fideity, which is the average fidelity of the output state of the channel relative to the ideal state given a Haar random input state. This average gate fidelity can be computed using qutip once we have simulated our channel using ZPGenerator.</p>
+<p>First, let’s construct the ideal CZ gate for reference, using QuTiP.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cz</span> <span class="o">=</span> <span class="n">Gate</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;CZ&#39;</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">controls</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="n">gate_ideal</span> <span class="o">=</span> <span class="n">QubitCircuit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">gate_ideal</span><span class="o">.</span><span class="n">add_gate</span><span class="p">(</span><span class="n">cz</span><span class="p">)</span>
+<span class="n">gate_ideal</span> <span class="o">=</span> <span class="n">gate_ideal</span><span class="o">.</span><span class="n">propagators</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="n">gate_ideal</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Quantum object: dims=[[2, 2], [2, 2]], shape=(4, 4), type=&#39;oper&#39;, dtype=Dense, isherm=True
+Qobj data =
+[[ 1.  0.  0.  0.]
+ [ 0.  1.  0.  0.]
+ [ 0.  0.  1.  0.]
+ [ 0.  0.  0. -1.]]
+</pre></div></div>
+</div>
+<p>Since the channel we simulated is probabilistic, it is not normalized. This must be taken into account when comparing it to a deterministic gate, such as the CZ gate. For any trace-preserving (TP) channel, i.e. a deterministic channel, the trace of the channel’s Choi matrix representation should be unity. The Choi matrix can be computed using the qutip function to_choi(), albeit qutip follows a convention where the trace of a TP Choi matrix is <span class="math notranslate nohighlight">\(2^d\)</span> where <span class="math notranslate nohighlight">\(d\)</span> is the number of qubits.
+Taking this into account, we can renormalize the successful channel so that it is trace preserving.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[13]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">norm</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">to_choi</span><span class="p">(</span><span class="n">channel_success</span><span class="p">)</span><span class="o">.</span><span class="n">tr</span><span class="p">()</span> <span class="o">/</span> <span class="mi">4</span>
+<span class="n">channel_success_TP</span> <span class="o">=</span> <span class="n">channel_success</span> <span class="o">/</span> <span class="n">norm</span>
+</pre></div>
+</div>
+</div>
+<p>Now, we can use qutip to compute the average gate fidelity of the normalized simulated channel and the ideal CZ gate.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">qt</span><span class="o">.</span><span class="n">average_gate_fidelity</span><span class="p">(</span><span class="n">channel_success_TP</span><span class="p">,</span> <span class="n">gate_ideal</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[14]:
+</pre></div>
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+np.float64(0.9999980738098853)
+</pre></div></div>
+</div>
+<p>As we can see, the protocol we simulated indeed performs a CZ gate with an average gate fidelity of unity to within the precision of the simulation.</p>
+<p>A different perspective is to first compute the error channel, which is the same as applying the simulated channel followed by the inverse channel corresponding to the ideal gate. This inverse ideal channel can be computed by converting the ideal CZ gate into a superoperator using sprepost function in qutip.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[15]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">channel_error</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">sprepost</span><span class="p">(</span><span class="n">gate_ideal</span><span class="o">.</span><span class="n">dag</span><span class="p">(),</span> <span class="n">gate_ideal</span><span class="p">)</span> <span class="o">*</span> <span class="n">channel_success_TP</span>
+</pre></div>
+</div>
+</div>
+<p>Notably, we can see that the error channel is the identity channel, which corresponds to the fact that the ideal inverse exactly cancels the simulated channel. To get a better visualization of this, we can convert the error channel into the <span class="math notranslate nohighlight">\(\chi\)</span> representation in the Pauli basis and then plot the elements.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[16]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pauli_basis</span> <span class="o">=</span> <span class="p">[[</span><span class="n">qt</span><span class="o">.</span><span class="n">qeye</span><span class="p">(</span><span class="mi">2</span><span class="p">),</span> <span class="n">qt</span><span class="o">.</span><span class="n">sigmax</span><span class="p">(),</span> <span class="n">qt</span><span class="o">.</span><span class="n">sigmay</span><span class="p">(),</span> <span class="n">qt</span><span class="o">.</span><span class="n">sigmaz</span><span class="p">()]]</span> <span class="o">*</span> <span class="mi">2</span>
+<span class="n">pauli_labels</span> <span class="o">=</span> <span class="p">[[</span><span class="s2">&quot;i&quot;</span><span class="p">,</span> <span class="s2">&quot;x&quot;</span><span class="p">,</span> <span class="s2">&quot;y&quot;</span><span class="p">,</span> <span class="s2">&quot;z&quot;</span><span class="p">]]</span> <span class="o">*</span> <span class="mi">2</span>
+<span class="n">chi</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">qpt</span><span class="p">(</span><span class="n">channel_error</span><span class="p">,</span> <span class="n">op_basis_list</span><span class="o">=</span><span class="n">pauli_basis</span><span class="p">)</span>
+<span class="n">qt</span><span class="o">.</span><span class="n">qpt_plot_combined</span><span class="p">(</span><span class="n">chi</span><span class="p">,</span> <span class="n">lbls_list</span><span class="o">=</span><span class="n">pauli_labels</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_40_0.png" src="../_images/notebooks_RUS_gate_40_0.png" />
+</div>
+</div>
+<p>This illustration clearly shows that the identity component is unity while all other Pauli operators are zero, indicating a noiseless channel.</p>
+</section>
+<section id="Repeat-until-success">
+<h2>Repeat until success<a class="headerlink" href="#Repeat-until-success" title="Permalink to this heading"></a></h2>
+<p>An interesting feature of this implementation of a CZ gate is that some outcomes that do not implement the gate, such as (2, 0, 0, 0), do not actually dephase the qubit states. That is, the purity of the final spin-spin state is still unity, indicating that it can be ‘reset’ using an appropriate correction. A type of outcome such as this is known as a ‘failure with insurance’, rather than a complete failure. Let’s take a look at the purity along with the concurrence for all possible outcomes:</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[17]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;12}</span><span class="s2"> | </span><span class="si">{:&lt;7}</span><span class="s2"> | </span><span class="si">{:&lt;5}</span><span class="s2"> | </span><span class="si">{:}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;Outcome&#39;</span><span class="p">,</span>  <span class="s1">&#39;Eff.&#39;</span><span class="p">,</span> <span class="s1">&#39;Purity&#39;</span><span class="p">,</span> <span class="s1">&#39;Concurrence&#39;</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">channel</span> <span class="ow">in</span> <span class="n">channels</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">final_state</span> <span class="o">=</span> <span class="n">channel</span><span class="p">(</span><span class="n">initial_state</span><span class="p">)</span>
+    <span class="n">eff</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">final_state</span><span class="o">.</span><span class="n">tr</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">eff</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="o">**-</span><span class="mi">5</span><span class="p">:</span>
+        <span class="n">final_state</span> <span class="o">=</span> <span class="n">final_state</span> <span class="o">/</span> <span class="n">eff</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;12}</span><span class="s2"> | </span><span class="si">{:.5f}</span><span class="s2"> | </span><span class="si">{:.4f}</span><span class="s2"> | </span><span class="si">{:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">eff</span><span class="p">,</span> <span class="p">(</span><span class="n">final_state</span> <span class="o">*</span> <span class="n">final_state</span><span class="o">.</span><span class="n">dag</span><span class="p">())</span><span class="o">.</span><span class="n">tr</span><span class="p">(),</span> <span class="n">qt</span><span class="o">.</span><span class="n">concurrence</span><span class="p">(</span><span class="n">final_state</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Outcome      | Eff.    | Purity | Concurrence
+(0, 0, 0, 2) | 0.12500 | 1.0000 | 0.00000
+(0, 0, 2, 0) | 0.12500 | 1.0000 | 0.00000
+(0, 1, 0, 1) | 0.12500 | 1.0000 | 1.00000
+(0, 1, 1, 0) | 0.12500 | 1.0000 | 1.00000
+(0, 2, 0, 0) | 0.12500 | 1.0000 | 0.00000
+(1, 0, 0, 1) | 0.12500 | 1.0000 | 0.99999
+(1, 0, 1, 0) | 0.12500 | 1.0000 | 0.99999
+(2, 0, 0, 0) | 0.12500 | 1.0000 | 0.00000
+</pre></div></div>
+</div>
+<p>As we can see, outcomes that give zero concurrence actually produce states that are still pure. To know what gate we are applying when we detect outcome (2, 0, 0, 0), for example, we can again visualize its <span class="math notranslate nohighlight">\(\chi\)</span> matrix.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[18]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">failures</span> <span class="o">=</span> <span class="p">[(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">)]</span>
+<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span> <span class="mi">15</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">outcome</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">failures</span><span class="p">):</span>
+    <span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">projection</span><span class="o">=</span><span class="s1">&#39;3d&#39;</span><span class="p">)</span>
+    <span class="n">qt</span><span class="o">.</span><span class="n">qpt_plot_combined</span><span class="p">(</span><span class="n">qt</span><span class="o">.</span><span class="n">qpt</span><span class="p">(</span><span class="mi">4</span> <span class="o">*</span> <span class="n">channels</span><span class="p">[</span><span class="n">outcome</span><span class="p">]</span> <span class="o">/</span> <span class="n">qt</span><span class="o">.</span><span class="n">to_choi</span><span class="p">(</span><span class="n">channels</span><span class="p">[</span><span class="n">outcome</span><span class="p">])</span><span class="o">.</span><span class="n">tr</span><span class="p">(),</span> <span class="n">op_basis_list</span><span class="o">=</span><span class="n">pauli_basis</span><span class="p">),</span>
+                         <span class="n">lbls_list</span><span class="o">=</span><span class="n">pauli_labels</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">,</span> <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">title</span><span class="o">=</span><span class="s1">&#39;Outcome: &#39;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">outcome</span><span class="p">))</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_46_0.png" src="../_images/notebooks_RUS_gate_46_0.png" />
+</div>
+</div>
+<p>Here we can see that outcomes (2, 0, 0, 0) and (0, 2, 0, 0) perform the identity while outcomes (0, 0, 2, 0) and (0, 0, 0, 2) perform a separable <span class="math notranslate nohighlight">\(Z_aZ_b\)</span> gate, which is consistent with [<a class="reference external" href="https://arxiv.org/abs/2311.05605">G. de Gliniasty et al., arXiv:2311.05605 (2023)</a>]. This means that we can reset these failures by applying the inverse transformation, which is just <span class="math notranslate nohighlight">\(Z_aZ_b\)</span> for those latter two outcomes. Once that is done, we can run the protocol again. In principle, this can
+be repeated as many times as we want. In this ideal scenario, we either have a success or a failure with insurance. Thus, by repeating many times, we can approach a gate efficiency of 100%. This is the main underlying idea behind the Repeat Until Success (RUS) gate.</p>
+<p>Let’s make a dictionary for the gates needed to reset after a failure with insurance.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[19]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">c</span> <span class="o">=</span> <span class="n">QubitCircuit</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add_gate</span><span class="p">(</span><span class="n">Gate</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+<span class="n">c</span><span class="o">.</span><span class="n">add_gate</span><span class="p">(</span><span class="n">Gate</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="s1">&#39;Z&#39;</span><span class="p">,</span> <span class="n">targets</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+<span class="n">reset_ZZ</span> <span class="o">=</span> <span class="n">prod</span><span class="p">(</span><span class="n">c</span><span class="o">.</span><span class="n">propagators</span><span class="p">())</span>
+<span class="n">reset_ZZ</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">sprepost</span><span class="p">(</span><span class="n">reset_ZZ</span><span class="p">,</span> <span class="n">reset_ZZ</span><span class="o">.</span><span class="n">dag</span><span class="p">())</span>
+<span class="n">reset_II</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">qeye</span><span class="p">([[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">]])</span>  <span class="c1"># identity superoperator</span>
+<span class="n">retries</span> <span class="o">=</span> <span class="p">{(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="n">reset_II</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="n">reset_II</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="n">reset_ZZ</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span> <span class="n">reset_ZZ</span><span class="p">}</span>
+</pre></div>
+</div>
+</div>
+<p>Now that we have all the information, we can write a recursive algorithm to compute the final successful channel after <span class="math notranslate nohighlight">\(N\)</span> gate attempts.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[20]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">rus_channel</span><span class="p">(</span><span class="n">N</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">conditional_channels</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Qobj</span><span class="p">:</span>
+    <span class="k">assert</span> <span class="n">N</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;Number of attempts must be positive.&quot;</span>
+    <span class="n">channel_success</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">correction</span> <span class="o">*</span> <span class="n">conditional_channels</span><span class="p">[</span><span class="n">outcome</span><span class="p">]</span> <span class="k">for</span> <span class="n">outcome</span><span class="p">,</span> <span class="n">correction</span> <span class="ow">in</span> <span class="n">successes</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+    <span class="k">return</span> <span class="n">channel_success</span> <span class="k">if</span> <span class="n">N</span> <span class="o">==</span> <span class="mi">1</span> <span class="k">else</span> <span class="n">channel_success</span> <span class="o">+</span> <span class="n">rus_channel</span><span class="p">(</span><span class="n">N</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">conditional_channels</span><span class="p">)</span> <span class="o">*</span> <span class="nb">sum</span><span class="p">(</span><span class="n">correction</span> <span class="o">*</span> <span class="n">conditional_channels</span><span class="p">[</span><span class="n">outcome</span><span class="p">]</span> <span class="k">for</span> <span class="n">outcome</span><span class="p">,</span> <span class="n">correction</span> <span class="ow">in</span> <span class="n">retries</span><span class="o">.</span><span class="n">items</span><span class="p">())</span>
+</pre></div>
+</div>
+</div>
+<p>From this perspective, the RUS gate can be considered a deterministic gate where any remaining inefficiency due to truncating <span class="math notranslate nohighlight">\(N\)</span> is simply considered infidelity. So, let’s now look at the average gate fidelity of the RUS gate as a function of the number of attempts.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[21]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fidelity</span> <span class="o">=</span> <span class="p">[</span><span class="n">qt</span><span class="o">.</span><span class="n">average_gate_fidelity</span><span class="p">(</span><span class="n">rus_channel</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">channels</span><span class="p">),</span> <span class="n">gate_ideal</span><span class="p">)</span> <span class="k">for</span> <span class="n">N</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)]</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">fidelity</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Number of attempts, $N$&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Average gate fidelity&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_52_0.png" src="../_images/notebooks_RUS_gate_52_0.png" />
+</div>
+</div>
+<p>Notice that, quite quickly, the RUS protocol achieves an almost perfect fidelity. To get a better idea of the scaling, let’s look at the error on a log scale plot.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[22]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">fidelity</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="o">-</span> <span class="n">qt</span><span class="o">.</span><span class="n">average_gate_fidelity</span><span class="p">(</span><span class="n">rus_channel</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">channels</span><span class="p">),</span> <span class="n">gate_ideal</span><span class="p">)</span> <span class="k">for</span> <span class="n">N</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">)]</span>
+<span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span> <span class="n">fidelity</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Number of attempts, $N$&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Average gate error&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_54_0.png" src="../_images/notebooks_RUS_gate_54_0.png" />
+</div>
+</div>
+<p>Now it is more clear that the error is suppressed exponentially fast with increasing number of attempts. To achieve a fidelity of greater than 99%, only 7 attempts are required in the ideal case. For 99.9%, 10 attempts are required.</p>
+</section>
+<section id="Imperfections">
+<h2>Imperfections<a class="headerlink" href="#Imperfections" title="Permalink to this heading"></a></h2>
+<p>Now that we have fully analyzed the perfect implementation of the RUS gate, we can start to simulate noisy implementations. Note that, once we start to add imperfections, there can be many more outcomes than are possible in the ideal case. These additional outcomes might not all be complete failures, some might be failures with insurance. This aspect introduces a substantial amount of richness and complexity into the problem, which is where ZPGenerator can be useful.</p>
+<section id="Pure-dephasing">
+<h3>Pure dephasing<a class="headerlink" href="#Pure-dephasing" title="Permalink to this heading"></a></h3>
+<p>Since ZPGenerator is designed to facilitate easy exploration of physical parameters, all we need to do is modify the parameters when simulating our channel. Let’s first add some emitter pure dephasing to see what happens to the average gate fidelity. For now, let’s use the exact same protocol as we derived in the ideal case.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[23]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">channels_imperfect</span> <span class="o">=</span> <span class="n">p_rus</span><span class="o">.</span><span class="n">conditional_channels</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;dephasing&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+<span class="n">fidelity</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="o">-</span> <span class="n">qt</span><span class="o">.</span><span class="n">average_gate_fidelity</span><span class="p">(</span><span class="n">rus_channel</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">channels_imperfect</span><span class="p">),</span> <span class="n">gate_ideal</span><span class="p">)</span> <span class="k">for</span> <span class="n">N</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">14</span><span class="p">)]</span>
+
+<span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="n">fidelity</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Number of attempts, $N$&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Average gate error&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_60_0.png" src="../_images/notebooks_RUS_gate_60_0.png" />
+</div>
+</div>
+<p>We can immediately see that, under the current protocol, the presence of emitter pure dephasing prevents us from arbitrarily improving the gate fidelity by increasing the number of attempts. However, the presence of dephasing actually reduces the amount of bunching, allowing for additional outcomes. Copying down the code we used to analyze the perfect case, we can now identify these new outcomes and how the spin state is affected.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[24]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;12}</span><span class="s2"> | </span><span class="si">{:&lt;7}</span><span class="s2"> | </span><span class="si">{:&lt;5}</span><span class="s2"> | </span><span class="si">{:}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;Outcome&#39;</span><span class="p">,</span>  <span class="s1">&#39;Eff.&#39;</span><span class="p">,</span> <span class="s1">&#39;Purity&#39;</span><span class="p">,</span> <span class="s1">&#39;Concurrence&#39;</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">channel</span> <span class="ow">in</span> <span class="n">channels_imperfect</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">final_state</span> <span class="o">=</span> <span class="n">channel</span><span class="p">(</span><span class="n">initial_state</span><span class="p">)</span>
+    <span class="n">eff</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">final_state</span><span class="o">.</span><span class="n">tr</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">eff</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="o">**-</span><span class="mi">5</span><span class="p">:</span>
+        <span class="n">final_state</span> <span class="o">=</span> <span class="n">final_state</span> <span class="o">/</span> <span class="n">eff</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;12}</span><span class="s2"> | </span><span class="si">{:.5f}</span><span class="s2"> | </span><span class="si">{:.4f}</span><span class="s2"> | </span><span class="si">{:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">eff</span><span class="p">,</span> <span class="p">(</span><span class="n">final_state</span> <span class="o">*</span> <span class="n">final_state</span><span class="o">.</span><span class="n">dag</span><span class="p">())</span><span class="o">.</span><span class="n">tr</span><span class="p">(),</span> <span class="n">qt</span><span class="o">.</span><span class="n">concurrence</span><span class="p">(</span><span class="n">final_state</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Outcome      | Eff.    | Purity | Concurrence
+(0, 0, 0, 2) | 0.11932 | 1.0000 | 0.00000
+(0, 0, 1, 1) | 0.01136 | 1.0001 | 0.00000
+(0, 0, 2, 0) | 0.11932 | 1.0000 | 0.00000
+(0, 1, 0, 1) | 0.12500 | 0.9132 | 0.90909
+(0, 1, 1, 0) | 0.12500 | 0.9132 | 0.90909
+(0, 2, 0, 0) | 0.11932 | 1.0000 | 0.00000
+(1, 0, 0, 1) | 0.12500 | 0.9132 | 0.90909
+(1, 0, 1, 0) | 0.12500 | 0.9132 | 0.90909
+(1, 1, 0, 0) | 0.01136 | 1.0001 | 0.00000
+(2, 0, 0, 0) | 0.11932 | 1.0000 | 0.00000
+</pre></div></div>
+</div>
+<p>Notably, there are now outcomes (0, 0, 1, 1) and (1, 1, 0, 0) due to the failure of Hong-Ou-Mandel (HOM) bunching. Interestingly, these ‘HOM failures’ actually still maintain the purity of the spin state, meaning there is a chance to recover them. This is because, for example, the outcome (1, 1, 0, 0) would have otherwise caused outcome (2, 0, 0, 0) or (0, 2, 0, 0) but both of these cases require the same reset correction and so there is no need to distinguish which one we should have observed.
+This means we can simply modify our list of retries and the associated reset corrections to include these two additional outcomes.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[25]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">retries</span><span class="o">.</span><span class="n">update</span><span class="p">({(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">):</span> <span class="n">reset_II</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span> <span class="n">reset_ZZ</span><span class="p">})</span>
+</pre></div>
+</div>
+</div>
+<p>Now, let’s see how this change impacts our fidelity.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[26]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">channels_imperfect</span> <span class="o">=</span> <span class="n">p_rus</span><span class="o">.</span><span class="n">conditional_channels</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;dephasing&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">},</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+
+<span class="n">fidelity_mod</span> <span class="o">=</span> <span class="p">[</span><span class="mi">1</span> <span class="o">-</span> <span class="n">qt</span><span class="o">.</span><span class="n">average_gate_fidelity</span><span class="p">(</span><span class="n">rus_channel</span><span class="p">(</span><span class="n">N</span><span class="p">,</span> <span class="n">channels_imperfect</span><span class="p">),</span> <span class="n">gate_ideal</span><span class="p">)</span> <span class="k">for</span> <span class="n">N</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">14</span><span class="p">)]</span>
+
+<span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="n">fidelity</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Original protocol&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">14</span><span class="p">),</span> <span class="n">fidelity_mod</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;Corrected protocol&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Number of attempts, $N$&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Average gate error&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_66_0.png" src="../_images/notebooks_RUS_gate_66_0.png" />
+</div>
+</div>
+<p>As we can see, by considering the additional two failures caused by photon distinguishability, we have managed to improve the average gate fidelity significantly. However, the presence of dephasing still prevents an arbitrary improvement in fidelity, and this is due to how it impacts the successful outcomes which we cannot compensate for by modifying our selection and correction protocol.</p>
+<p>With this new protocol, let’s see how the asymptotic fidelity (say at <span class="math notranslate nohighlight">\(N=100\)</span>) depends on the indistinguishability of photons produced by the emitters. To do this, we must compute both the indistinguishability and the gate fidelity as we vary the emitter pure dephasing rate.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[27]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">dephasing_rates</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+<span class="n">asymptotic_error</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">hom_list</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">rate</span> <span class="ow">in</span> <span class="n">dephasing_rates</span><span class="p">:</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dephasing&#39;</span><span class="p">:</span> <span class="n">rate</span><span class="p">}</span>
+    <span class="n">hom_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trion</span><span class="o">.</span><span class="n">hom</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">)[</span><span class="s1">&#39;M&#39;</span><span class="p">])</span>
+    <span class="n">channels_imperfect</span> <span class="o">=</span> <span class="n">p_rus</span><span class="o">.</span><span class="n">conditional_channels</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">asymptotic_error</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">qt</span><span class="o">.</span><span class="n">average_gate_fidelity</span><span class="p">(</span><span class="n">rus_channel</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">channels_imperfect</span><span class="p">),</span> <span class="n">gate_ideal</span><span class="p">))</span>
+
+<span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">hom_list</span><span class="p">,</span> <span class="n">asymptotic_error</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Indistinguishability&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Asymptotic average gate error&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_68_0.png" src="../_images/notebooks_RUS_gate_68_0.png" />
+</div>
+</div>
+<p>Since ZPGenerator provides us with the full noisy channel, we can get a lot more information about exactly what goes wrong by looking at the error channel. Let’s use a reasonable value of 0.1 for the pure dephasing, corresponding to a indistinguishability of around 91%. This reflects a common lab setting.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[28]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;dephasing&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">}</span>
+<span class="n">ind</span> <span class="o">=</span> <span class="n">trion</span><span class="o">.</span><span class="n">hom</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">)[</span><span class="s1">&#39;M&#39;</span><span class="p">]</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Indistinguishability: &#39;</span><span class="p">,</span> <span class="n">ind</span><span class="p">)</span>
+<span class="n">channels_imperfect</span> <span class="o">=</span> <span class="n">p_rus</span><span class="o">.</span><span class="n">conditional_channels</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">channel_rus</span> <span class="o">=</span> <span class="n">rus_channel</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">channels_imperfect</span><span class="p">)</span>
+<span class="n">channel_err</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">sprepost</span><span class="p">(</span><span class="n">gate_ideal</span><span class="o">.</span><span class="n">dag</span><span class="p">(),</span> <span class="n">gate_ideal</span><span class="p">)</span> <span class="o">*</span> <span class="n">channel_rus</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Indistinguishability:  0.9126667691602584
+</pre></div></div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[29]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">qt</span><span class="o">.</span><span class="n">qpt_plot_combined</span><span class="p">(</span><span class="n">qt</span><span class="o">.</span><span class="n">qpt</span><span class="p">(</span><span class="n">channel_err</span><span class="p">,</span> <span class="n">op_basis_list</span><span class="o">=</span><span class="n">pauli_basis</span><span class="p">),</span> <span class="n">lbls_list</span><span class="o">=</span><span class="n">pauli_labels</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_71_0.png" src="../_images/notebooks_RUS_gate_71_0.png" />
+</div>
+</div>
+<p>We can see that the presence of dephasing causes a <span class="math notranslate nohighlight">\(Z_aZ_b\)</span> correlated dephasing error on the spin qubits.</p>
+</section>
+<section id="Realistic-excitation-pulses">
+<h3>Realistic excitation pulses<a class="headerlink" href="#Realistic-excitation-pulses" title="Permalink to this heading"></a></h3>
+<p>Let’s now take a look at using a more realistic excitation pulses that may cause multi-photon emission. To do this, we need to rebuild our processor using a different pulse shape. Let’s use a square pulse because it captures globally the same physics as a Gaussian pulse but is faster to simulate.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[30]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trion</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">trion</span><span class="p">(</span><span class="n">pulse</span><span class="o">=</span><span class="n">Pulse</span><span class="o">.</span><span class="n">square</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">}),</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;theta&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;phi&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;theta_c&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;phi_c&#39;</span><span class="p">:</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;area&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">})</span>
+<span class="n">p_rus_pulse</span> <span class="o">=</span> <span class="n">Processor</span><span class="p">()</span> <span class="o">//</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">trion</span><span class="p">)</span> <span class="o">//</span> <span class="n">c_rus</span> <span class="o">//</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)),</span> <span class="n">Detector</span><span class="o">.</span><span class="n">pnr</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<p>Let’s quickly take a look at the characterisation of our source.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[31]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trion</span><span class="o">.</span><span class="n">display_quality</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Number  | Probability
+0       | 0.50012
+1       | 0.49382
+2       | 0.00605
+3       | 0.00001
+4       | 0.00000
+
+Figure of Merit       | Value
+Brightness            | 0.4999
+Average photon number | 0.5060
+Intensity correlation | 0.0475
+
+Figure of Merit                | Value
+First order number coherence   | 0.0066
+Second order number coherence  | 0.0001
+Hong-Ou-Mandel visibility      | 0.9292
+Mean wavepacket overlap        | 0.9690
+
+</pre></div></div>
+</div>
+<p>We can notice that using a more realistic pulse introduces a small probability of producing 2 photons for each excitation pulse. This gives an integrated intensity correlation of about 5%, which also reduces the indistinguishability characterised by the mean wavepacket overlap.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[32]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;12}</span><span class="s2"> | </span><span class="si">{:&lt;6}</span><span class="s2"> | </span><span class="si">{:&lt;5}</span><span class="s2"> | </span><span class="si">{:}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="s1">&#39;Outcome&#39;</span><span class="p">,</span>  <span class="s1">&#39;Eff.&#39;</span><span class="p">,</span> <span class="s1">&#39;Purity&#39;</span><span class="p">,</span> <span class="s1">&#39;Concurrence&#39;</span><span class="p">))</span>
+<span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">channel</span> <span class="ow">in</span> <span class="n">channels_imperfect</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+    <span class="n">final_state</span> <span class="o">=</span> <span class="n">channel</span><span class="p">(</span><span class="n">initial_state</span><span class="p">)</span>
+    <span class="n">eff</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">final_state</span><span class="o">.</span><span class="n">tr</span><span class="p">())</span>
+    <span class="k">if</span> <span class="n">eff</span> <span class="o">&gt;</span> <span class="mi">10</span><span class="o">**-</span><span class="mi">4</span><span class="p">:</span>
+        <span class="n">final_state</span> <span class="o">=</span> <span class="n">final_state</span> <span class="o">/</span> <span class="n">eff</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{:&lt;12}</span><span class="s2"> | </span><span class="si">{:.4f}</span><span class="s2"> | </span><span class="si">{:.4f}</span><span class="s2"> | </span><span class="si">{:.5f}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">k</span><span class="p">),</span> <span class="n">eff</span><span class="p">,</span> <span class="p">(</span><span class="n">final_state</span> <span class="o">*</span> <span class="n">final_state</span><span class="o">.</span><span class="n">dag</span><span class="p">())</span><span class="o">.</span><span class="n">tr</span><span class="p">(),</span> <span class="n">qt</span><span class="o">.</span><span class="n">concurrence</span><span class="p">(</span><span class="n">final_state</span><span class="p">)))</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Outcome      | Eff.   | Purity | Concurrence
+(0, 0, 0, 2) | 0.1193 | 1.0000 | 0.00000
+(0, 0, 1, 1) | 0.0114 | 1.0001 | 0.00000
+(0, 0, 2, 0) | 0.1193 | 1.0000 | 0.00000
+(0, 1, 0, 1) | 0.1250 | 0.9132 | 0.90909
+(0, 1, 1, 0) | 0.1250 | 0.9132 | 0.90909
+(0, 2, 0, 0) | 0.1193 | 1.0000 | 0.00000
+(1, 0, 0, 1) | 0.1250 | 0.9132 | 0.90909
+(1, 0, 1, 0) | 0.1250 | 0.9132 | 0.90909
+(1, 1, 0, 0) | 0.0114 | 1.0001 | 0.00000
+(2, 0, 0, 0) | 0.1193 | 1.0000 | 0.00000
+</pre></div></div>
+</div>
+<p>Right away we can notice that the realistic pulse produces many more outcomes than before due to the possibility of multi-photon emission. The pulse may also fail to excite the source entirely, leaving a small chance to see zero or one photon outcomes as well (even without including other losses). Interestingly, as for dephasing, we can see that many of the outcomes actually maintain a high purity for the spin state and some of the single-photon outcomes even indicate entanglement was achieved.
+This suggests that there may be a way to modify our protocol again in order to compensate for these additional noisy outcomes using corrections and repeat attempts. To keep things simple, however, we will just use the same protocol as for the pure dephasing case and see how the average gate fidelity depends on the intensity correlation of the source.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[33]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">pulse_widths</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">logspace</span><span class="p">(</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">20</span><span class="p">)</span>
+<span class="n">asymptotic_error</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="n">g2_list</span> <span class="o">=</span> <span class="p">[]</span>
+<span class="k">for</span> <span class="n">width</span> <span class="ow">in</span> <span class="n">pulse_widths</span><span class="p">:</span>
+    <span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="n">width</span><span class="p">}</span>
+    <span class="n">g2_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">trion</span><span class="o">.</span><span class="n">g2</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">))</span>
+    <span class="n">channels_imperfect</span> <span class="o">=</span> <span class="n">p_rus_pulse</span><span class="o">.</span><span class="n">conditional_channels</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+    <span class="n">asymptotic_error</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">qt</span><span class="o">.</span><span class="n">average_gate_fidelity</span><span class="p">(</span><span class="n">rus_channel</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">channels_imperfect</span><span class="p">),</span> <span class="n">gate_ideal</span><span class="p">))</span>
+
+<span class="n">_</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">g2_list</span><span class="p">,</span> <span class="n">asymptotic_error</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s1">&#39;log&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s1">&#39;Intensity correlation, $g^{(2)}$&#39;</span><span class="p">)</span>
+<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s1">&#39;Asymptotic average gate error&#39;</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_81_0.png" src="../_images/notebooks_RUS_gate_81_0.png" />
+</div>
+</div>
+<p>Lastly, let’s take a look at the error channel’s <span class="math notranslate nohighlight">\(\chi\)</span> matrix representation to see roughly what is happening when we have multi-photon emission.</p>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[34]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">}</span>
+<span class="n">g2</span> <span class="o">=</span> <span class="n">trion</span><span class="o">.</span><span class="n">g2</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Intensity correlation: &#39;</span><span class="p">,</span> <span class="n">g2</span><span class="p">)</span>
+<span class="n">channels_imperfect</span> <span class="o">=</span> <span class="n">p_rus_pulse</span><span class="o">.</span><span class="n">conditional_channels</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">channel_rus</span> <span class="o">=</span> <span class="n">rus_channel</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">channels_imperfect</span><span class="p">)</span>
+<span class="n">channel_err</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">sprepost</span><span class="p">(</span><span class="n">gate_ideal</span><span class="o">.</span><span class="n">dag</span><span class="p">(),</span> <span class="n">gate_ideal</span><span class="p">)</span> <span class="o">*</span> <span class="n">channel_rus</span>
+<span class="n">chi_err</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">qpt</span><span class="p">(</span><span class="n">channel_err</span><span class="p">,</span> <span class="n">op_basis_list</span><span class="o">=</span><span class="n">pauli_basis</span><span class="p">)</span>
+<span class="n">qt</span><span class="o">.</span><span class="n">qpt_plot_combined</span><span class="p">(</span><span class="n">chi_err</span><span class="p">,</span> <span class="n">lbls_list</span><span class="o">=</span><span class="n">pauli_labels</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Intensity correlation:  0.039824083747069985
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_83_1.png" src="../_images/notebooks_RUS_gate_83_1.png" />
+</div>
+</div>
+<p>Surprisingly, we can see that the only problem with our error channel is that the weight of the identity is not 1. This means that the presence of multi-photon emission, at least in small amounts, causes an effective inefficiency as its dominant effect. This suggests it is possible to almost fully compensate for it using proper corrections. However, the situation becomes a bit more complicated if some loss is introduced into the system as it will reduce the ability to distinguish different
+multi-photon outcomes.</p>
+</section>
+<section id="Combined-Imperfections">
+<h3>Combined Imperfections<a class="headerlink" href="#Combined-Imperfections" title="Permalink to this heading"></a></h3>
+<p>Let’s now combine distinguishability, multi-photon emission, and losses together and see what kind of error channel we get.</p>
+<div class="nbinput nblast docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[35]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">trion</span> <span class="o">=</span> <span class="n">Source</span><span class="o">.</span><span class="n">trion</span><span class="p">(</span><span class="n">pulse</span><span class="o">=</span><span class="n">Pulse</span><span class="o">.</span><span class="n">square</span><span class="p">(),</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;theta&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;phi&#39;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s1">&#39;theta_c&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">4</span><span class="p">,</span> <span class="s1">&#39;phi_c&#39;</span><span class="p">:</span> <span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="s1">&#39;area&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">*</span> <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="p">})</span>
+<span class="n">p_rus_combined</span> <span class="o">=</span> <span class="n">Processor</span><span class="p">()</span> <span class="o">//</span> <span class="p">([</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">trion</span><span class="p">)</span> <span class="o">//</span> <span class="n">Circuit</span><span class="o">.</span><span class="n">loss</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">&#39;transmission&#39;</span><span class="p">)</span> <span class="o">//</span> <span class="n">c_rus</span> <span class="o">//</span> <span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)),</span> <span class="n">Detector</span><span class="o">.</span><span class="n">pnr</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+</pre></div>
+</div>
+</div>
+<div class="nbinput docutils container">
+<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[36]:
+</pre></div>
+</div>
+<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">params</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;width&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span> <span class="s1">&#39;dephasing&#39;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">,</span> <span class="s1">&#39;transmission/efficiency&#39;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">}</span>
+<span class="n">trion</span><span class="o">.</span><span class="n">display_quality</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">)</span>
+
+<span class="n">channels_imperfect</span> <span class="o">=</span> <span class="n">p_rus_combined</span><span class="o">.</span><span class="n">conditional_channels</span><span class="p">(</span><span class="n">parameters</span><span class="o">=</span><span class="n">params</span><span class="p">,</span> <span class="n">basis</span><span class="o">=</span><span class="n">basis</span><span class="p">,</span> <span class="n">select</span><span class="o">=</span><span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">3</span><span class="p">])</span>
+<span class="n">channel_rus</span> <span class="o">=</span> <span class="n">rus_channel</span><span class="p">(</span><span class="mi">100</span><span class="p">,</span> <span class="n">channels_imperfect</span><span class="p">)</span>
+<span class="n">channel_err</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">sprepost</span><span class="p">(</span><span class="n">gate_ideal</span><span class="o">.</span><span class="n">dag</span><span class="p">(),</span> <span class="n">gate_ideal</span><span class="p">)</span> <span class="o">*</span> <span class="n">channel_rus</span>
+<span class="n">chi_err</span> <span class="o">=</span> <span class="n">qt</span><span class="o">.</span><span class="n">qpt</span><span class="p">(</span><span class="n">channel_err</span><span class="p">,</span> <span class="n">op_basis_list</span><span class="o">=</span><span class="n">pauli_basis</span><span class="p">)</span>
+<span class="n">qt</span><span class="o">.</span><span class="n">qpt_plot_combined</span><span class="p">(</span><span class="n">chi_err</span><span class="p">,</span> <span class="n">lbls_list</span><span class="o">=</span><span class="n">pauli_labels</span><span class="p">)</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+<div class="nboutput docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<div class="highlight"><pre>
+Number  | Probability
+0       | 0.50292
+1       | 0.48540
+2       | 0.01164
+3       | 0.00004
+4       | 0.00000
+
+Figure of Merit       | Value
+Brightness            | 0.4971
+Average photon number | 0.5088
+Intensity correlation | 0.0909
+
+Figure of Merit                | Value
+First order number coherence   | 0.0137
+Second order number coherence  | 0.0003
+Hong-Ou-Mandel visibility      | 0.7059
+Mean wavepacket overlap        | 0.7968
+
+</pre></div></div>
+</div>
+<div class="nboutput nblast docutils container">
+<div class="prompt empty docutils container">
+</div>
+<div class="output_area docutils container">
+<img alt="../_images/notebooks_RUS_gate_88_1.png" src="../_images/notebooks_RUS_gate_88_1.png" />
+</div>
+</div>
+<p>By including some significant sources of error, we can now see that the error channel becomes less trivial. However, it appears that, for this set of parameters, the dominant errors are all related to <span class="math notranslate nohighlight">\(Z\)</span> and <span class="math notranslate nohighlight">\(I\)</span> operations. This is likely a result of the symmetry of the protocol, and we might expect other types of errors to arise if the two sources are not fully identical, if the trion is not completely degenerate, or if the entangling circuit is not perfect. Although all these
+other sources of errors can be taken into account using ZPGenerator, it goes beyond the scope of this exercise.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="trion_cavity.html" class="btn btn-neutral float-left" title="Trion in a polarized cavity" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="component_construction.html" class="btn btn-neutral float-right" title="Component Construction" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Quandela.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
