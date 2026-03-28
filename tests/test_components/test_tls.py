@@ -126,6 +126,18 @@ def test_source_from_master_equation_propagates_named_monitored_channels():
     assert source.output.ports[0].is_closed
 
 
+def test_catalogue_sources_expose_stable_optional_port_names():
+    two_level = Source.two_level()
+    exciton = Source.exciton()
+    biexciton = Source.biexciton()
+    trion = Source.trion()
+
+    assert two_level.output.port_names == ['direct']
+    assert exciton.output.port_names == ['x', 'y']
+    assert biexciton.output.port_names == ['x', 'y', 'bx', 'by']
+    assert trion.output.port_names == ['direct_h', 'direct_v']
+
+
 def test_circuit_from_perceval_requires_compute_unitary():
     with pytest.raises(TypeError, match="compute_unitary"):
         Circuit.from_perceval(object())

@@ -88,3 +88,4 @@ class ExcitonEmitter(EmitterBase):
 
         super().__init__()
         self.set_system(system=system, transitions=transitions)
+        self.transition_names = ['x', 'y']
