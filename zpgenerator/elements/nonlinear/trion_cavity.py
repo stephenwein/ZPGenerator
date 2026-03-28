@@ -59,8 +59,11 @@ class TrionCavityEmitter(MultiBodyEmitter):
             purcell_total = args['purcell_factor_h'] + args['purcell_factor_v']
             decay = 1 / (purcell_total * args['timescale'])
             return {
-                'coupling_h': decay * args['purcell_factor_h'] / (2 * args['regime_h']),
-                'coupling_v': decay * args['purcell_factor_v'] / (2 * args['regime_v']),
+                # The H/V dipoles carry a 1/sqrt(2) normalization relative to the circular transitions,
+                # so the cavity coupling needs a compensating sqrt(2) to keep the Purcell-factor
+                # parameters in the lab-friendly branch-enhancement convention.
+                'coupling_h': decay * args['purcell_factor_h'] / (sqrt(2) * args['regime_h']),
+                'coupling_v': decay * args['purcell_factor_v'] / (sqrt(2) * args['regime_v']),
                 'cavity_h/decay': decay * args['purcell_factor_h'] / args['regime_h'] ** 2,
                 'cavity_v/decay': decay * args['purcell_factor_v'] / args['regime_v'] ** 2,
                 'trion/decay': decay,

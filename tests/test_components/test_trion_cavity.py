@@ -3,6 +3,7 @@ from zpgenerator.components.sources import TrionCavitySource
 from zpgenerator.elements import Emitter
 from zpgenerator.dynamic import Pulse
 import pytest
+from math import sqrt
 
 
 def test_trion_cavity_emitter_builds_exact_tensor_model():
@@ -53,8 +54,8 @@ def test_trion_cavity_keyword_defaults_derive_mode_parameters():
     defaults = emitter.default_parameters
 
     assert defaults['trion/decay'] == pytest.approx(1 / 20)
-    assert defaults['coupling_h'] == pytest.approx(1 / 2)
-    assert defaults['coupling_v'] == pytest.approx(1 / 2)
+    assert defaults['coupling_h'] == pytest.approx(1 / sqrt(2))
+    assert defaults['coupling_v'] == pytest.approx(1 / sqrt(2))
     assert defaults['cavity_h/decay'] == pytest.approx(5)
     assert defaults['cavity_v/decay'] == pytest.approx(10 / 3)
 
@@ -102,7 +103,7 @@ def test_trion_cavity_single_mode_detuning_matches_split_total_purcell_conventio
         source.beta(1, parameters={'cavity_h/resonance': 20})
     )
 
-    assert total_brightness == pytest.approx(0.7155567546249643, rel=2e-2)
+    assert total_brightness == pytest.approx(5 / 6, rel=2e-2)
 
 
 def test_trion_cavity_explicit_mode_purcell_factors_preserve_stronger_single_mode_collection():
@@ -121,4 +122,4 @@ def test_trion_cavity_explicit_mode_purcell_factors_preserve_stronger_single_mod
         source.beta(1, parameters={'cavity_h/resonance': 20})
     )
 
-    assert total_brightness == pytest.approx(0.8340790810204535, rel=2e-2)
+    assert total_brightness == pytest.approx(10 / 11, rel=2e-2)
