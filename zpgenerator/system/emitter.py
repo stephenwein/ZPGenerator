@@ -18,6 +18,23 @@ def _normalise_operator_inputs(operators):
     return operators
 
 
+def _operators_overlap(left, right):
+    for left_op in left:
+        for right_op in right:
+            try:
+                if left_op == right_op:
+                    return True
+            except Exception:
+                pass
+            try:
+                if left_op.evaluate(0) == right_op.evaluate(0):
+                    return True
+            except Exception:
+                if left_op is right_op:
+                    return True
+    return False
+
+
 # maybe could be made a subclass of EnvironmentBase?
 class LindbladVector(AQuantumSystem, TimeVectorOperator):
     """
@@ -103,6 +120,7 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
 
         self._initial_time = None
         self._initial_state = None
+        self._transition_names = None
 
         self.system = None
 
@@ -117,6 +135,23 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
     @property
     def modes(self):
         return self.transitions.modes
+
+    @property
+    def transition_names(self):
+        if self._transition_names is not None:
+            return self._transition_names
+        if self.modes == 1 and self.name:
+            return [self.name]
+        return [f'mode_{i}' for i in range(self.modes)]
+
+    @transition_names.setter
+    def transition_names(self, names):
+        if names is None:
+            self._transition_names = None
+            return
+        if len(names) != self.modes:
+            raise ValueError("Transition names must match the number of emitter modes.")
+        self._transition_names = list(names)
 
     @property
     def initial_state(self):
@@ -160,11 +195,12 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
         self._sync_objects()
         self._check_objects()
         self.system = system
+        self._transition_names = None
 
     @classmethod
     def from_master_equation(cls,
                              hamiltonian: Union[HamiltonianBase, Qobj, Operator] = None,
-                             monitored: Union[LindbladVector, List[Qobj], List[ATimeOperator]] = None,
+                             monitored: Union[dict, LindbladVector, List[Qobj], List[ATimeOperator]] = None,
                              environment: Union[EnvironmentBase, List[Qobj], List[Operator]] = None,
                              states: dict = None,
                              operators: dict = None,
@@ -178,7 +214,8 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
         The monitored collapse operators are included both in the dissipative environment and in the
         emitter transitions, so they contribute to the Liouvillian and define the collected output modes.
         """
-        monitored = _normalise_operator_inputs(monitored)
+        monitored_names = list(monitored.keys()) if isinstance(monitored, dict) else None
+        monitored = _normalise_operator_inputs(list(monitored.values()) if isinstance(monitored, dict) else monitored)
         environment = _normalise_operator_inputs(environment)
 
         transitions = monitored if isinstance(monitored, LindbladVector) else \
@@ -186,6 +223,11 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
 
         base_environment = environment if isinstance(environment, EnvironmentBase) else \
             EnvironmentBase(environment, parameters=parameters)
+        if _operators_overlap(transitions.operator_list, base_environment.operator_list):
+            raise ValueError(
+                "Monitored channels are added to the dissipative environment automatically. "
+                "Do not pass the same collapse operator in both 'monitored' and 'environment'."
+            )
         combined_environment = deepcopy(base_environment)
         if transitions.operator_list:
             combined_environment.add(deepcopy(transitions.operator_list))
@@ -199,6 +241,8 @@ class EmitterBase(AQuantumEmitter, ControlledSystem):
 
         emitter = cls()
         emitter.set_system(system=system, transitions=deepcopy(transitions))
+        if monitored_names is not None:
+            emitter.transition_names = monitored_names
 
         if isinstance(initial_state, str):
             if initial_state not in emitter.states:

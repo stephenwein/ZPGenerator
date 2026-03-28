@@ -29,7 +29,7 @@ class PhononAssistedSource(GatedSourceComponent):
         emitter = Emitter.purcell(purcell_factor=purcell_factor, regime=regime, timescale=timescale,
                                   parameters=parameters)
 
-        pulse = pulse if pulse else Pulse.gaussian(parameters=parameters)
+        pulse = deepcopy(pulse) if pulse else Pulse.gaussian(parameters=parameters)
         pulse.rename_parameter('detuning', '_detuning')
 
         self.bath = PhononBath(material=material, temperature=temperature, resolution=resolution, max_power=max_power)
@@ -63,7 +63,7 @@ class PhononAssistedSource(GatedSourceComponent):
                                      gate=gate,
                                      efficiency=efficiency,
                                      name=name,
-                                     close_outputs=[0],
+                                     close_outputs=['direct'],
                                      mask_outputs=True)
         self.__dict__ = source.__dict__
         self.default_name = '_PhononAssisted'

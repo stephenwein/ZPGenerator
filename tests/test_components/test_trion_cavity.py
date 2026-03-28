@@ -22,6 +22,8 @@ def test_trion_cavity_source_exposes_only_cavity_outputs():
     assert source.is_masked
     assert source.input.open_modes == 0
     assert source.output.open_modes == 2
+    assert source.output.port_names == ['cavity_h', 'cavity_v', 'direct_h', 'direct_v']
+    assert source.output.open_port_names == ['cavity_h', 'cavity_v']
 
 
 def test_trion_cavity_factory_matches_component_semantics():
@@ -40,6 +42,8 @@ def test_trion_cavity_source_supports_port_resolved_quality_metrics():
 
     assert source.beta(0) > 0
     assert source.beta(1) > 0
+    assert source.beta('cavity_h') > 0
+    assert source.beta('cavity_v') > 0
 
 
 def test_trion_cavity_keyword_defaults_derive_mode_parameters():

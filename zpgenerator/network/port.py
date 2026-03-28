@@ -30,8 +30,8 @@ class InputPort(Port):
     An object tracking the status of an input mode to a component
     """
 
-    def __init__(self, is_closed: bool = False):
-        super().__init__(is_closed)
+    def __init__(self, is_closed: bool = False, name: str = None):
+        super().__init__(is_closed, name=name)
 
 
 class OutputPort(Port, TimeBinArray):
@@ -39,8 +39,8 @@ class OutputPort(Port, TimeBinArray):
     An object tracking the status of an output mode from a component
     """
 
-    def __init__(self, is_closed: bool = False, is_monitored: bool = False):
-        Port.__init__(self, is_closed)
+    def __init__(self, is_closed: bool = False, is_monitored: bool = False, name: str = None):
+        Port.__init__(self, is_closed, name=name)
         TimeBinArray.__init__(self)
         self.is_monitored = is_monitored
 
@@ -55,7 +55,7 @@ class OutputPort(Port, TimeBinArray):
 
     def open(self):
         """Can be cascaded with another component"""
-        self.__init__()
+        self.__init__(name=self.port_name)
 
 
 class PortLayer:
@@ -205,3 +205,11 @@ class OutputLayer(PortLayer):
     def open_all(self):
         for port in self.ports:
             port.open()
+
+    @property
+    def port_names(self):
+        return [port.port_name for port in self.ports]
+
+    @property
+    def open_port_names(self):
+        return [port.port_name for port in self.ports if port.is_open]

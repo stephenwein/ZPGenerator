@@ -83,7 +83,7 @@ class TrionCavitySource(GatedSourceComponent):
                                      efficiency=efficiency,
                                      parameters=emitter.default_parameters | (parameters if parameters else {}),
                                      name=name,
-                                     close_outputs=[2, 3],
+                                     close_outputs=['direct_h', 'direct_v'],
                                      mask_outputs=True)
         self.__dict__ = source.__dict__
         self.default_name = '_TrionCavity'

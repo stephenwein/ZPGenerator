@@ -16,6 +16,8 @@ class PurcellEmitter(MultiBodyEmitter):
                  name: str = None):
         emitter = TwoLevelEmitter(name='emitter')
         cavity = CavityEmitter(name='cavity')
+        emitter.transition_names = ['direct']
+        cavity.transition_names = ['cavity']
         coupling = CouplingBase.jaynes_cummings(emitter.operators['lower'], cavity.operators['annihilation'])
 
         super().__init__(subsystems=[emitter, cavity], coupling=coupling, parameters=parameters, name=name)

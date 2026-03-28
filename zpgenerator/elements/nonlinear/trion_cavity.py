@@ -25,6 +25,9 @@ class TrionCavityEmitter(MultiBodyEmitter):
         cavity_h = CavityEmitter(truncation=truncation, name='cavity_h')
         cavity_v = CavityEmitter(truncation=truncation, name='cavity_v')
         trion = TrionEmitter(charge=charge, name='trion')
+        cavity_h.transition_names = ['cavity_h']
+        cavity_v.transition_names = ['cavity_v']
+        trion.transition_names = ['direct_h', 'direct_v']
 
         lower_r = trion.operators['lower_R']
         lower_l = trion.operators['lower_L']

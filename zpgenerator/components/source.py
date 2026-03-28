@@ -140,6 +140,7 @@ class Source(SourceComponent):
                              initial_state: Union[Qobj, str] = None,
                              initial_time: Union[float, int] = None,
                              gate: Union[TimeInterval, list, callable] = None,
+                             infer_gate: bool = False,
                              efficiency: float = 1,
                              parameters: dict = None,
                              states: dict = None,
@@ -150,6 +151,8 @@ class Source(SourceComponent):
                              mask_outputs: bool = False):
         if monitored is None:
             monitored_inputs = []
+        elif isinstance(monitored, dict):
+            monitored_inputs = monitored
         elif isinstance(monitored, (list, tuple, LindbladVector)):
             monitored_inputs = monitored
         else:
@@ -169,6 +172,11 @@ class Source(SourceComponent):
                                                initial_time=initial_time,
                                                parameters=parameters,
                                                name=emitter_name)
+        if gate is None and not infer_gate:
+            raise ValueError(
+                "Provide an explicit gate for Source.from_master_equation(...), or pass infer_gate=True "
+                "to derive one from the model's finite time support."
+            )
         return source_from_emitter(emitter=emitter,
                                    gate=gate,
                                    efficiency=efficiency,

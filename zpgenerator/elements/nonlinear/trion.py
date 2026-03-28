@@ -132,3 +132,4 @@ class TrionEmitter(EmitterBase):
 
         super().__init__()
         self.set_system(system=system, transitions=transitions)
+        self.transition_names = ['direct_h', 'direct_v']

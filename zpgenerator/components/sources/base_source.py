@@ -189,8 +189,16 @@ def source_from_emitter(emitter: EmitterBase,
                                   parameters=parameters,
                                   name=name)
 
-    for output in ([] if close_outputs is None else close_outputs):
-        source.output.ports[output].close()
+    if hasattr(emitter, 'transition_names'):
+        for port, port_name in zip(source.output.ports, emitter.transition_names):
+            port.port_name = port_name
+
+    outputs_to_close = [] if close_outputs is None else close_outputs
+    if not isinstance(outputs_to_close, list):
+        outputs_to_close = [outputs_to_close]
+    for output in outputs_to_close:
+        port_number = source.get_port_number(output) if isinstance(output, str) else output
+        source.output.ports[port_number].close()
     if mask_outputs:
         source.mask()
 

@@ -71,6 +71,7 @@ def test_source_from_master_equation_infers_gate_from_finite_time_support():
         hamiltonian=hamiltonian,
         monitored=[destroy(2)],
         initial_state=None,
+        infer_gate=True,
     )
 
     times = source.times()
@@ -88,6 +89,17 @@ def test_source_from_master_equation_requires_explicit_gate_for_time_independent
         )
 
 
+def test_source_from_master_equation_requires_opt_in_for_gate_inference():
+    pulse = Pulse.gaussian(parameters={'width': 1})
+    hamiltonian = TimeOperator(operator=num(2), functions=pulse)
+
+    with pytest.raises(ValueError, match="infer_gate=True"):
+        Source.from_master_equation(
+            hamiltonian=hamiltonian,
+            monitored=[destroy(2)],
+        )
+
+
 def test_source_from_master_equation_supports_port_layout_policy():
     source = Source.from_master_equation(
         hamiltonian=num(2),
@@ -97,6 +109,20 @@ def test_source_from_master_equation_supports_port_layout_policy():
         mask_outputs=True,
     )
 
+    assert source.output.ports[0].is_closed
+
+
+def test_source_from_master_equation_propagates_named_monitored_channels():
+    source = Source.from_master_equation(
+        hamiltonian=num(2),
+        monitored={'signal': destroy(2), 'idler': destroy(2)},
+        gate=[0, 1],
+        close_outputs=['signal'],
+        mask_outputs=True,
+    )
+
+    assert source.output.port_names == ['signal', 'idler']
+    assert source.output.open_port_names == ['idler']
     assert source.output.ports[0].is_closed
 
 

@@ -148,6 +148,17 @@ def test_emitter_from_master_equation_duplicates_monitored_channels_into_environ
     assert [env.constant for env in emitter.evaluate_quadruple(0).environment] == [background, monitored]
 
 
+def test_emitter_from_master_equation_rejects_duplicate_monitored_environment_channels():
+    channel = destroy(2)
+
+    with pytest.raises(ValueError, match="same collapse operator"):
+        EmitterBase.from_master_equation(
+            hamiltonian=num(2),
+            monitored=[channel],
+            environment=[channel],
+        )
+
+
 def test_emitter_from_master_equation_accepts_time_operator_hamiltonians():
     pulse = Pulse.gaussian()
     hamiltonian = TimeOperator(operator=num(2), functions=pulse)

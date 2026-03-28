@@ -42,7 +42,7 @@ class PurcellSource(GatedSourceComponent):
                                      efficiency=efficiency,
                                      parameters=emitter.default_parameters | (parameters if parameters else {}),
                                      name=name,
-                                     close_outputs=[0],
+                                     close_outputs=['direct'],
                                      mask_outputs=True)
         self.__dict__ = source.__dict__
         self.default_name = '_Purcell'

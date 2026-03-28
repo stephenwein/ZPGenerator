@@ -35,6 +35,8 @@ def test_purcell_factory_matches_component_semantics():
     assert factory_source.is_masked == component_source.is_masked
     assert [port.is_closed for port in factory_source.output.ports] == [port.is_closed for port in component_source.output.ports]
     assert [port.is_closed for port in factory_source.input.ports] == [port.is_closed for port in component_source.input.ports]
+    assert factory_source.output.port_names == ['direct', 'cavity']
+    assert factory_source.output.open_port_names == ['cavity']
 
 
 def test_phonon_assisted_factory_matches_component_semantics():
@@ -44,6 +46,16 @@ def test_phonon_assisted_factory_matches_component_semantics():
     assert factory_source.is_masked == component_source.is_masked
     assert [port.is_closed for port in factory_source.output.ports] == [port.is_closed for port in component_source.output.ports]
     assert [port.is_closed for port in factory_source.input.ports] == [port.is_closed for port in component_source.input.ports]
+    assert factory_source.output.port_names == ['direct', 'cavity']
+    assert factory_source.output.open_port_names == ['cavity']
+
+
+def test_phonon_assisted_does_not_mutate_passed_pulse_parameters():
+    pulse = Pulse.gaussian(parameters={'detuning': 1.5, 'width': 2})
+    PhononAssistedSource(pulse=pulse)
+
+    assert 'detuning' in pulse.parameters
+    assert '_detuning' not in pulse.parameters
 
 
 def test_purcell_emitter_keyword_defaults_still_overwrite_explicit_dependents():
@@ -77,4 +89,3 @@ def test_inserted_public_purcell_rate_can_be_overridden_explicitly():
 
     assert gate.get_parameters()['purcell_rate'] == 5
     assert gate.get_parameters({'purcell_rate': 123})['purcell_rate'] == 123
-
